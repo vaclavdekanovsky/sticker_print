@@ -37,39 +37,56 @@ export default function StickerSheet({ images }) {
         return flatList;
     }, [images]);
 
-    // Total grid slots = 18 stickers * 2 photos = 36 slots
-    // We need to render the Sticker Grid.
-    // The Grid has 3 columns and 6 rows.
-    // Each cell is a "Sticker" containing 2 slots (Left/Right).
+    const SLOTS_PER_PAGE = 36; // 18 stickers * 2 slots
+    const CELLS_PER_PAGE = 18; // 3 cols * 6 rows
 
-    const stickers = [];
-    for (let i = 0; i < ROWS * COLS; i++) {
-        const slotIndexBase = i * 2;
-        const leftImg = slots[slotIndexBase];
-        const rightImg = slots[slotIndexBase + 1];
-        stickers.push({ left: leftImg, right: rightImg });
+    // Calculate how many pages we need
+    // If 0 slots, we still show 1 empty page
+    const totalPages = Math.max(1, Math.ceil(slots.length / SLOTS_PER_PAGE));
+
+    const pages = [];
+    for (let p = 0; p < totalPages; p++) {
+        const pageStickers = [];
+        const pageStartSlot = p * SLOTS_PER_PAGE;
+
+        // For each cell in the grid (18 cells)
+        for (let i = 0; i < CELLS_PER_PAGE; i++) {
+            const slotIndexBase = pageStartSlot + (i * 2);
+            const leftImg = slots[slotIndexBase];
+            const rightImg = slots[slotIndexBase + 1];
+            pageStickers.push({ left: leftImg, right: rightImg });
+        }
+        pages.push(pageStickers);
     }
 
     return (
         <div className="sheet-container">
-            <div className="a4-page" id="sticker-sheet-preview">
-                <div className="grid">
-                    {stickers.map((sticker, idx) => (
-                        <div key={idx} className="sticker-cell">
-                            <div className="sticker-slot left">
-                                {sticker.left && <img src={sticker.left.displaySrc} alt="" />}
+            {pages.map((pageStickers, pageIdx) => (
+                <div key={pageIdx} className="a4-page" id={`sticker-sheet-preview-${pageIdx}`} style={{ marginBottom: '20px' }}>
+                    <div className="grid">
+                        {pageStickers.map((sticker, idx) => (
+                            <div key={idx} className="sticker-cell">
+                                <div className="sticker-slot left">
+                                    {sticker.left && <img src={sticker.left.displaySrc} alt="" />}
+                                </div>
+                                <div className="sticker-slot right">
+                                    {sticker.right && <img src={sticker.right.displaySrc} alt="" />}
+                                </div>
+                                <div className="cut-line-vertical"></div>
                             </div>
-                            <div className="sticker-slot right">
-                                {sticker.right && <img src={sticker.right.displaySrc} alt="" />}
-                            </div>
-                            {/* Cut lines / Decorations could go here */}
-                            <div className="cut-line-vertical"></div>
+                        ))}
+                    </div>
+                    {/* Optional Page Number */}
+                    {totalPages > 1 && (
+                        <div className="page-number" style={{ position: 'absolute', bottom: '5px', right: '10px', fontSize: '10px', color: '#ccc' }}>
+                            Page {pageIdx + 1} / {totalPages}
                         </div>
-                    ))}
+                    )}
                 </div>
-            </div>
+            ))}
+
             <div className="sheet-info">
-                {slots.length} / 36 slots filled
+                {slots.length} slots filled ({totalPages} {totalPages === 1 ? 'page' : 'pages'})
             </div>
         </div>
     );

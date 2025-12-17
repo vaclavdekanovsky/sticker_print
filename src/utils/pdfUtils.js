@@ -1,6 +1,5 @@
 // Constants defined locally for now to avoid dependency issues during refactor
 
-
 // Making constants local for now to avoid circular dependency mess until we clean up.
 const A4_WIDTH_MM = 210;
 const A4_HEIGHT_MM = 297;
@@ -15,7 +14,6 @@ const GRID_HEIGHT = ROWS * STICKER_H;
 const MARGIN_X = (A4_WIDTH_MM - GRID_WIDTH) / 2;
 const MARGIN_Y = (A4_HEIGHT_MM - GRID_HEIGHT) / 2;
 
-
 // Scale Factor for 300 DPI
 const SCALE_FACTOR = 11.8;
 
@@ -25,8 +23,8 @@ export const optimizeImageForPDF = (base64Str, bgColor = '#ffffff') => {
         img.src = base64Str;
         img.onload = () => {
             const canvas = document.createElement('canvas');
-            const pixelW = Math.ceil(SLOT_W * SCALE_FACTOR);
-            const pixelH = Math.ceil(SLOT_H * SCALE_FACTOR);
+            const pixelW = Math.ceil(SLOT_W * SCALE_FACTOR); // Target Width in Pixels
+            const pixelH = Math.ceil(SLOT_H * SCALE_FACTOR); // Target Height in Pixels
 
             canvas.width = pixelW;
             canvas.height = pixelH;
@@ -36,8 +34,28 @@ export const optimizeImageForPDF = (base64Str, bgColor = '#ffffff') => {
             ctx.fillStyle = bgColor;
             ctx.fillRect(0, 0, pixelW, pixelH);
 
-            // Draw and resize
-            ctx.drawImage(img, 0, 0, pixelW, pixelH);
+            // --- Distortion Fix (Object Fit: Cover) ---
+            const sourceAspect = img.width / img.height;
+            const targetAspect = pixelW / pixelH;
+
+            let sx, sy, sWidth, sHeight;
+
+            if (sourceAspect > targetAspect) {
+                // Source is wider than target: Crop width (sides)
+                sHeight = img.height;
+                sWidth = img.height * targetAspect;
+                sx = (img.width - sWidth) / 2;
+                sy = 0;
+            } else {
+                // Source is taller than target: Crop height (top/bottom)
+                sWidth = img.width;
+                sHeight = img.width / targetAspect;
+                sx = 0;
+                sy = (img.height - sHeight) / 2;
+            }
+
+            // Draw and resize (center cropped)
+            ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, pixelW, pixelH);
 
             // Return compressed JPEG
             resolve(canvas.toDataURL('image/jpeg', 0.8));
@@ -75,13 +93,21 @@ export const generatePDF = async (images) => {
         for (let k = 0; k < img.quantity; k++) slots.push(optimizedSrc);
     });
 
-    // Draw
-    slots.forEach((src, idx) => {
-        if (idx >= (ROWS * COLS * 2)) return; // Max page capacity
+    // 3. Draw Slots
+    const slotsPerPage = ROWS * COLS * 2; // 36
 
-        // Calculate Position
-        const gridIdx = Math.floor(idx / 2);
-        const isRightSide = idx % 2 === 1;
+    slots.forEach((src, idx) => {
+        // --- Multipage Logic ---
+        if (idx > 0 && idx % slotsPerPage === 0) {
+            doc.addPage();
+        }
+
+        // Calculate Position on CURRENT page
+        const pageIndex = Math.floor(idx / slotsPerPage);
+        const idxOnPage = idx % slotsPerPage; // 0 to 35
+
+        const gridIdx = Math.floor(idxOnPage / 2);
+        const isRightSide = idxOnPage % 2 === 1;
 
         const row = Math.floor(gridIdx / COLS);
         const col = gridIdx % COLS;

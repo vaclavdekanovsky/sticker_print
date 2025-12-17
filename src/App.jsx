@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Plus, Download, FileArchive, Upload } from 'lucide-react'
+import { Plus, Download, FileArchive, Upload, Trash2 } from 'lucide-react'
 import JSZip from 'jszip'
 import getCroppedImg from './utils/cropUtils'
 import { generatePDF } from './utils/pdfUtils'
@@ -72,6 +72,18 @@ function App() {
     });
   }, []);
 
+  const clearAllImages = useCallback(() => {
+    if (window.confirm("Are you sure you want to clear all images? This cannot be undone.")) {
+      setImages(prev => {
+        prev.forEach(img => {
+          if (img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+          if (img.croppedSrc && img.croppedSrc.startsWith('blob:')) URL.revokeObjectURL(img.croppedSrc);
+        });
+        return [];
+      });
+    }
+  }, []);
+
   const startEditing = useCallback((id) => {
     const img = images.find(i => i.id === id);
     if (img) {
@@ -99,14 +111,19 @@ function App() {
         flip,
         backgroundColor
       );
-      // Note: getCroppedImg currently returns base64. 
-      // Ideally we'd update it to return blob, but mixing is okay for now.
-      // Or we convert it to blob here?
-      // Let's keep it simple for now, base64 for cropped is okay for 36 small images, 
-      // but blob is better. 
+
+      // Convert Base64 to Blob URL for performance
+      const res = await fetch(croppedBase64);
+      const blob = await res.blob();
+      const croppedBlobUrl = URL.createObjectURL(blob);
+
+      // Clean up old cropped blob if it existed
+      if (img.croppedSrc && img.croppedSrc.startsWith('blob:')) {
+        URL.revokeObjectURL(img.croppedSrc);
+      }
 
       updateImage(editingId, {
-        croppedSrc: croppedBase64,
+        croppedSrc: croppedBlobUrl,
         crop,
         zoom,
         rotation,
@@ -172,6 +189,7 @@ function App() {
               accept=".zip"
               onChange={handleImportZip}
             />
+            <button className="btn-secondary" onClick={clearAllImages} disabled={images.length === 0} title="Clear All"><Trash2 size={18} /> Clear All</button>
             <button className="btn-secondary" onClick={() => fileInputRef.current?.click()}><Upload size={18} /> Import ZIP</button>
             <button className="btn-secondary" onClick={() => generateZip(images)} disabled={images.length === 0}><FileArchive size={18} /> Export ZIP</button>
             <button className="btn-primary" onClick={() => generatePDF(images)} disabled={images.length === 0}><Download size={18} /> Export PDF</button>
