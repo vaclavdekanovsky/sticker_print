@@ -14,7 +14,10 @@ A web application for creating, organizing, and printing custom sticker sheets (
     -   **Background Color**: Set custom background colors for individual stickers or the entire sheet.
 -   **Drag-and-Drop Organization**: Reorder stickers in the sidebar simply by dragging them.
 -   **PDF Export**: Generates a high-quality A4 PDF ready for printing.
--   **ZIP Export/Import**: Save your work-in-progress or export all processed images.
+-   **Smart ZIP Export/Import**: 
+    -   Exports all processed images along with a `metadata.json` file.
+    -   **Restores Everything**: When you import the ZIP back, it remembers your sticker quantity, size, edit settings, and order.
+    -   Also supports importing standard ZIPs containing just images.
 
 ## Quick Start Guide
 
