@@ -63,6 +63,12 @@ header {
   padding: 0.5rem;
   border-radius: 6px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  cursor: grab;
+  touch-action: none;
+}
+
+.image-card:active {
+  cursor: grabbing;
 }
 
 .image-card img {

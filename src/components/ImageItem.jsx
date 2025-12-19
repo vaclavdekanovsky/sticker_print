@@ -16,10 +16,11 @@ const ImageItem = React.memo(({ img, onUpdate, onEdit, onRemove }) => {
                         max="36"
                         value={img.quantity}
                         onChange={(e) => onUpdate(img.id, { quantity: parseInt(e.target.value) || 1 })}
+                        onPointerDown={(e) => e.stopPropagation()}
                     />
                 </div>
-                <button onClick={() => onEdit(img.id)} title="Crop/Resize"><CropIcon size={16} /></button>
-                <button onClick={() => onRemove(img.id)} title="Remove"><X size={16} /></button>
+                <button onClick={() => onEdit(img.id)} title="Crop/Resize" onPointerDown={(e) => e.stopPropagation()}><CropIcon size={16} /></button>
+                <button onClick={() => onRemove(img.id)} title="Remove" onPointerDown={(e) => e.stopPropagation()}><X size={16} /></button>
             </div>
         </div>
     );

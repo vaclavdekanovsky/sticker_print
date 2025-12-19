@@ -1,6 +1,5 @@
-import React from 'react';
 import Cropper from 'react-easy-crop';
-import { FlipHorizontal, FlipVertical } from 'lucide-react';
+import { FlipHorizontal, FlipVertical, RotateCw, RotateCcw } from 'lucide-react';
 
 const CropModal = ({
     editingImage,
@@ -9,11 +8,17 @@ const CropModal = ({
     rotation,
     flip,
     backgroundColor,
+    imgFitMode,
+    stickerSize,
+    quantity,
     setCrop,
     setZoom,
     setRotation,
     setFlip,
     setBackgroundColor,
+    setImgFitMode,
+    setStickerSize,
+    setQuantity,
     onCropComplete,
     onCancel,
     onSave
@@ -32,7 +37,7 @@ const CropModal = ({
                         crop={crop}
                         zoom={zoom}
                         rotation={rotation}
-                        aspect={34 / 47}
+                        aspect={stickerSize === 'full' ? 68 / 47 : 34 / 47}
                         onCropChange={setCrop}
                         onCropComplete={onCropComplete}
                         onZoomChange={setZoom}
@@ -42,6 +47,97 @@ const CropModal = ({
                     />
                 </div>
                 <div className="cropper-controls">
+                    {/* Row 1: Quantity & Sticker Size */}
+                    <div className="control-row" style={{ display: 'flex', gap: '3rem', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <label style={{ minWidth: 'auto', marginRight: '0' }}>Qty</label>
+                            <input
+                                type="number"
+                                min="1"
+                                max="99"
+                                value={quantity}
+                                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                                style={{ width: '60px', padding: '4px' }}
+                            />
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <label style={{ minWidth: 'auto', marginRight: '0' }}>Size</label>
+                            <div style={{ display: 'flex', gap: '0.2rem' }}>
+                                <button
+                                    className={`btn-small ${stickerSize === 'half' ? 'active' : ''}`}
+                                    onClick={() => setStickerSize('half')}
+                                    style={{ background: stickerSize === 'half' ? '#646cff' : '#eee', color: stickerSize === 'half' ? 'white' : 'black' }}
+                                >
+                                    1 Slot
+                                </button>
+                                <button
+                                    className={`btn-small ${stickerSize === 'full' ? 'active' : ''}`}
+                                    onClick={() => setStickerSize('full')}
+                                    style={{ background: stickerSize === 'full' ? '#646cff' : '#eee', color: stickerSize === 'full' ? 'white' : 'black' }}
+                                >
+                                    2 Slots
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Row 2: Fit Mode & Flip */}
+                    <div className="control-row" style={{ display: 'flex', gap: '3rem', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <label style={{ minWidth: 'auto', marginRight: '0' }}>Fit</label>
+                            <div style={{ display: 'flex', gap: '0.2rem' }}>
+                                <button
+                                    className={`btn-small ${imgFitMode === 'cover' ? 'active' : ''}`}
+                                    onClick={() => setImgFitMode('cover')}
+                                    style={{ background: imgFitMode === 'cover' ? '#646cff' : '#eee', color: imgFitMode === 'cover' ? 'white' : 'black' }}
+                                    title="Fill entire slot (Crop)"
+                                >
+                                    Fill
+                                </button>
+                                <button
+                                    className={`btn-small ${imgFitMode === 'contain' ? 'active' : ''}`}
+                                    onClick={() => setImgFitMode('contain')}
+                                    style={{ background: imgFitMode === 'contain' ? '#646cff' : '#eee', color: imgFitMode === 'contain' ? 'white' : 'black' }}
+                                    title="Fit entire image (Whole)"
+                                >
+                                    Whole
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <label style={{ minWidth: 'auto', marginRight: '0' }}>Flip</label>
+                            <div style={{ display: 'flex', gap: '0.2rem' }}>
+                                <button
+                                    className={`btn-icon ${flip.horizontal ? 'active' : ''}`}
+                                    onClick={() => setFlip(prev => ({ ...prev, horizontal: !prev.horizontal }))}
+                                    title="Flip Horizontal"
+                                >
+                                    <FlipHorizontal size={18} />
+                                </button>
+                                <button
+                                    className={`btn-icon ${flip.vertical ? 'active' : ''}`}
+                                    onClick={() => setFlip(prev => ({ ...prev, vertical: !prev.vertical }))}
+                                    title="Flip Vertical"
+                                >
+                                    <FlipVertical size={18} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Row 3: Background */}
+                    <div className="control-row" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                        <label>Background</label>
+                        <input
+                            type="color"
+                            value={backgroundColor}
+                            onChange={(e) => setBackgroundColor(e.target.value)}
+                        />
+                        <button onClick={() => setBackgroundColor('#ffffff')} className="btn-small">Reset White</button>
+                    </div>
+
+                    {/* Row 4: Zoom */}
                     <div className="control-row">
                         <label>Zoom</label>
                         <input
@@ -53,48 +149,43 @@ const CropModal = ({
                             onChange={(e) => setZoom(Number(e.target.value))}
                             className="zoom-range"
                         />
-                    </div>
-                    <div className="control-row">
-                        <label>Rotate</label>
-                        <input
-                            type="range"
-                            value={rotation}
-                            min={0}
-                            max={360}
-                            step={1}
-                            onChange={(e) => setRotation(Number(e.target.value))}
-                            className="zoom-range"
-                        />
-                    </div>
-                    <div className="control-row" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                        <label>Background</label>
-                        <input
-                            type="color"
-                            value={backgroundColor}
-                            onChange={(e) => setBackgroundColor(e.target.value)}
-                        />
-                        <button onClick={() => setBackgroundColor('#ffffff')} className="btn-small">Reset White</button>
+                        <button className="btn-small" onClick={() => setZoom(0.1)} title="Fit Entire Image">Fit</button>
                     </div>
 
-                    <div className="control-row" style={{ display: 'flex', gap: '1rem' }}>
-                        <label>Flip</label>
-                        <button
-                            className={`btn-icon ${flip.horizontal ? 'active' : ''}`}
-                            onClick={() => setFlip(prev => ({ ...prev, horizontal: !prev.horizontal }))}
-                        >
-                            <FlipHorizontal size={20} />
-                        </button>
-                        <button
-                            className={`btn-icon ${flip.vertical ? 'active' : ''}`}
-                            onClick={() => setFlip(prev => ({ ...prev, vertical: !prev.vertical }))}
-                        >
-                            <FlipVertical size={20} />
-                        </button>
+                    {/* Row 5: Rotate */}
+                    <div className="control-row">
+                        <label>Rotate</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+                            <button
+                                className="btn-icon"
+                                onClick={() => setRotation(prev => (prev - 90 + 360) % 360)}
+                                title="Rotate -90°"
+                            >
+                                <RotateCcw size={18} />
+                            </button>
+                            <button
+                                className="btn-icon"
+                                onClick={() => setRotation(prev => (prev + 90) % 360)}
+                                title="Rotate +90°"
+                            >
+                                <RotateCw size={18} />
+                            </button>
+                            <input
+                                type="range"
+                                value={rotation}
+                                min={0}
+                                max={360}
+                                step={1}
+                                onChange={(e) => setRotation(Number(e.target.value))}
+                                className="zoom-range"
+                                style={{ flex: 1 }}
+                            />
+                        </div>
                     </div>
 
                     <div className="cropper-buttons">
                         <button onClick={onCancel}>Cancel</button>
-                        <button className="btn-primary" onClick={onSave}>Save Crop</button>
+                        <button className="btn-primary" onClick={onSave}>Save Changes</button>
                     </div>
                 </div>
             </div>

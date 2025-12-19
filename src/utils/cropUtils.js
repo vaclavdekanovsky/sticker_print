@@ -76,19 +76,63 @@ export default async function getCroppedImg(
         finalCtx.fillStyle = backgroundColor;
         finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
 
-        // 2. Draw the cropped portion from the transformed canvas
-        // drawImage(img, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)
-        finalCtx.drawImage(
-            canvas,
-            pixelCrop.x,
-            pixelCrop.y,
-            pixelCrop.width,
-            pixelCrop.height,
-            0,
-            0,
-            pixelCrop.width,
-            pixelCrop.height
-        );
+        // 2. Safe Draw (Intersection Logic for "Fit" / Zoom < 1)
+        // pixelCrop contains x, y, width, height relative to the rotated canvas
+        // If x < 0, it means the crop area starts before the image (padding left)
+
+        let sx = pixelCrop.x;
+        let sy = pixelCrop.y;
+        let sWidth = pixelCrop.width;
+        let sHeight = pixelCrop.height;
+        let dx = 0;
+        let dy = 0;
+        let dWidth = pixelCrop.width;
+        let dHeight = pixelCrop.height;
+
+        // Clip source x
+        if (sx < 0) {
+            dx = -sx; // Shift destination right
+            dWidth += sx; // Decrease destination width (sx is negative)
+            sWidth += sx; // Decrease source width
+            sx = 0; // Source start at 0
+        }
+
+        // Clip source y
+        if (sy < 0) {
+            dy = -sy;
+            dHeight += sy;
+            sHeight += sy;
+            sy = 0;
+        }
+
+        // Clip source width (if extends beyond canvas width)
+        if (sx + sWidth > canvas.width) {
+            const overflow = (sx + sWidth) - canvas.width;
+            sWidth -= overflow;
+            dWidth -= overflow;
+        }
+
+        // Clip source height
+        if (sy + sHeight > canvas.height) {
+            const overflow = (sy + sHeight) - canvas.height;
+            sHeight -= overflow;
+            dHeight -= overflow;
+        }
+
+        // Draw only if we have valid dimensions
+        if (sWidth > 0 && sHeight > 0) {
+            finalCtx.drawImage(
+                canvas,
+                sx,
+                sy,
+                sWidth,
+                sHeight,
+                dx,
+                dy,
+                dWidth,
+                dHeight
+            );
+        }
     }
 
     // As Base64 string
