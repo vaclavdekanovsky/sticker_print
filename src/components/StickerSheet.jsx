@@ -88,7 +88,8 @@ export default function StickerSheet({ images, onInteract }) {
                                         className="sticker-slot full"
                                         style={{
                                             position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            backgroundColor: cell.item.backgroundColor || '#ffffff'
                                         }}
                                         onClick={() => onInteract(cell.item.id)}
                                         title="Click to Edit (Full Sticker)"
@@ -101,7 +102,7 @@ export default function StickerSheet({ images, onInteract }) {
                                             className="sticker-slot left"
                                             onClick={() => cell.left && onInteract(cell.left.id)}
                                             title={cell.left ? "Click to Edit" : ""}
-                                            style={{ cursor: cell.left ? 'pointer' : 'default' }}
+                                            style={{ cursor: cell.left ? 'pointer' : 'default', backgroundColor: cell.left?.backgroundColor || '#ffffff' }}
                                         >
                                             {cell.left && <img src={cell.left.displaySrc} alt="" />}
                                         </div>
@@ -109,7 +110,7 @@ export default function StickerSheet({ images, onInteract }) {
                                             className="sticker-slot right"
                                             onClick={() => cell.right && onInteract(cell.right.id)}
                                             title={cell.right ? "Click to Edit" : ""}
-                                            style={{ cursor: cell.right ? 'pointer' : 'default' }}
+                                            style={{ cursor: cell.right ? 'pointer' : 'default', backgroundColor: cell.right?.backgroundColor || '#ffffff' }}
                                         >
                                             {cell.right && <img src={cell.right.displaySrc} alt="" />}
                                         </div>

@@ -76,6 +76,11 @@ function App() {
   }, [globalBackground, fitMode]);
 
   const { getRootProps, getInputProps } = useDropzone({ onDrop, accept: { 'image/*': [] } });
+  const { getRootProps: getCanvasRootProps, getInputProps: getCanvasInputProps } = useDropzone({
+    onDrop,
+    accept: { 'image/*': [] },
+    noClick: true
+  });
 
   // Helpers
   const updateImage = useCallback((id, updates) => {
@@ -312,17 +317,7 @@ function App() {
     }
   };
 
-  const applyGlobalFitMode = (mode) => {
-    if (window.confirm(`Set ALL stickers to ${mode === 'contain' ? 'Full Length (Fit)' : 'Fill (Cover)'}?`)) {
-      setFitMode(mode);
-      setImages(prev => prev.map(img => {
-        if (img.croppedSrc && img.croppedSrc.startsWith('blob:')) {
-          URL.revokeObjectURL(img.croppedSrc);
-        }
-        return { ...img, fitMode: mode, croppedSrc: null };
-      }));
-    }
-  };
+
 
   const applyGlobalSize = (size) => {
     if (window.confirm(`Set ALL stickers to ${size === 'full' ? 'Full Size (2 Slots)' : 'Half Size (1 Slot)'}?`)) {
@@ -338,7 +333,7 @@ function App() {
         <div className="header-content">
           <div>
             <h1>Sticker Sheet Creator</h1>
-            <p>A4 size • 6x3 Grid • {fitMode === 'contain' ? 'Fit' : 'Crop'}</p>
+            <p>A4 size • 6x3 Grid</p>
           </div>
           <div className="actions">
             {/* Global Controls */}
@@ -350,15 +345,7 @@ function App() {
                 <button className="btn-small" onClick={applyGlobalBackground} title="Apply BG to All">Set All</button>
               </div>
 
-              <div style={{ height: '24px', width: '1px', background: '#ccc' }}></div>
 
-              {/* Fit Mode */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <select value={fitMode} onChange={(e) => applyGlobalFitMode(e.target.value)} style={{ fontSize: '0.8rem', padding: '2px' }}>
-                  <option value="cover">Fill (Crop)</option>
-                  <option value="contain">Fit (Whole)</option>
-                </select>
-              </div>
 
               <div style={{ height: '24px', width: '1px', background: '#ccc' }}></div>
 
@@ -418,7 +405,8 @@ function App() {
           </DndContext>
         </div>
 
-        <div className="preview-area">
+        <div className="preview-area" {...getCanvasRootProps()}>
+          <input {...getCanvasInputProps()} />
           <div className="preview-scale-wrapper" style={{ transform: 'scale(0.6)', transformOrigin: 'top center' }}>
             <StickerSheet images={images} onInteract={startEditing} />
           </div>

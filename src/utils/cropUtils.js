@@ -72,9 +72,9 @@ export default async function getCroppedImg(
     const finalCtx = finalCanvas.getContext('2d');
 
     if (finalCtx) {
-        // 1. Fill background
-        finalCtx.fillStyle = backgroundColor;
-        finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+        // 1. Fill background - SKIPPED to allow dynamic background changes
+        // finalCtx.fillStyle = backgroundColor;
+        // finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
 
         // 2. Safe Draw (Intersection Logic for "Fit" / Zoom < 1)
         // pixelCrop contains x, y, width, height relative to the rotated canvas
@@ -136,5 +136,5 @@ export default async function getCroppedImg(
     }
 
     // As Base64 string
-    return finalCanvas.toDataURL('image/jpeg', 0.95);
+    return finalCanvas.toDataURL('image/png');
 }
