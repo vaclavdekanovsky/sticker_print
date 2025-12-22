@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Documentation Assets
+doc-assets/input_images
+doc-assets/generated_docs
+test-results/
+playwright-report/

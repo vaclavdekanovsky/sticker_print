@@ -1,0 +1,25 @@
+--- STARTING TEST RUN ---
+Starting test function
+Found 5 images to test with.
+Loading App
+PAGE LOG: [vite] connecting...
+PAGE LOG: [vite] connected.
+PAGE LOG: %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Uploading to Sidebar
+Waiting for Sidebar Images
+Taking Screenshot 1
+Uploading to Canvas
+Waiting for All Images
+Taking Screenshot 2
+Opening Editor
+Waiting for Modal
+Rotating
+Zooming
+Changing Slots
+Taking Screenshot 3
+Saving Changes
+Taking Screenshot 4
+Preparing PDF Content
+Setting HTML Content
+Printing PDF
+PDF documentation generated at: C:\Vasa\Programming\christmas_stickers\doc-assets\generated_docs\Sticker_Generator_User_Guide.pdf
