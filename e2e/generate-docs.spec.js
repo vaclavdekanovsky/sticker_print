@@ -48,6 +48,19 @@ test.describe('Documentation Generation', () => {
         await page.goto('/');
         await expect(page.locator('h1')).toContainText('Sticker Sheet Creator');
 
+        // Dismiss Paper Setup Modal if present (First Run)
+        const paperModal = page.locator('.paper-setup-modal');
+        try {
+            await paperModal.waitFor({ state: 'visible', timeout: 2000 });
+            if (await paperModal.isVisible()) {
+                console.log('--- Dismissing Paper Setup ---');
+                await paperModal.locator('button.btn-primary').click(); // Apply Setup
+                await expect(paperModal).toBeHidden();
+            }
+        } catch (e) {
+            console.log('Paper setup modal did not appear or was not blocking.');
+        }
+
         // Step 1: Upload to Sidebar
         console.log('--- Uploading to Sidebar ---');
         const sidebarInput = page.locator('.sidebar .dropzone input');

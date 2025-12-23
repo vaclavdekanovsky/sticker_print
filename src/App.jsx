@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Plus, Download, FileArchive, Upload, Trash2, GripVertical } from 'lucide-react'
+import { Plus, Download, FileArchive, Upload, Trash2, GripVertical, Settings } from 'lucide-react'
 import JSZip from 'jszip'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -10,6 +10,7 @@ import { generatePDF } from './utils/pdfUtils'
 import { generateZip } from './utils/zipUtils'
 import StickerSheet from './components/StickerSheet'
 import CropModal from './components/CropModal'
+import PaperSetupModal from './components/PaperSetupModal'
 import SortableImageItem from './components/SortableImageItem'
 import './App.css'
 
@@ -17,6 +18,19 @@ function App() {
   const [images, setImages] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const fileInputRef = useRef(null);
+
+  // Paper Config State
+  const [paperConfig, setPaperConfig] = useState({
+    id: '6x3',
+    name: '6x3 Grid (68x47mm)',
+    cols: 3,
+    rows: 6,
+    margins: { top: 7.5, bottom: 7.5, left: 3, right: 3 },
+    gaps: { x: 0, y: 0 },
+    slotCount: 2,
+    slotDirection: 'vertical'
+  });
+  const [isPaperSetupOpen, setIsPaperSetupOpen] = useState(false);
 
   // Global Settings
   const [globalBackground, setGlobalBackground] = useState('#ffffff');
@@ -51,6 +65,15 @@ function App() {
         if (img.croppedSrc && img.croppedSrc.startsWith('blob:')) URL.revokeObjectURL(img.croppedSrc);
       });
     };
+  }, []);
+
+  // First time setup check
+  useEffect(() => {
+    const hasSeen = localStorage.getItem('hasSeenPaperSetup');
+    if (!hasSeen) {
+      setIsPaperSetupOpen(true);
+      localStorage.setItem('hasSeenPaperSetup', 'true');
+    }
   }, []);
 
   // Dropzone handler
@@ -144,8 +167,6 @@ function App() {
     if (!editingId || !croppedAreaPixels) return;
     const img = images.find(i => i.id === editingId);
     try {
-      // If we are in fit logic (contain/full len), we might not crop unless manual edit?
-      // Actually we always crop/process to ensure background color is applied.
       const croppedBase64 = await getCroppedImg(
         img.src,
         croppedAreaPixels,
@@ -154,12 +175,10 @@ function App() {
         backgroundColor
       );
 
-      // Convert Base64 to Blob URL for performance
       const res = await fetch(croppedBase64);
       const blob = await res.blob();
       const croppedBlobUrl = URL.createObjectURL(blob);
 
-      // Clean up old cropped blob if it existed
       if (img.croppedSrc && img.croppedSrc.startsWith('blob:')) {
         URL.revokeObjectURL(img.croppedSrc);
       }
@@ -199,80 +218,48 @@ function App() {
           const metadataStr = await metadataFile.async("string");
           const metadata = JSON.parse(metadataStr);
 
+          // Restore Paper Config if present
+          if (metadata.paperConfig) {
+            setPaperConfig(metadata.paperConfig);
+          }
+          const items = metadata.items || metadata; // Handle legacy array vs new object structure
+
           // Sort by order just in case
-          metadata.sort((a, b) => (a.order || 0) - (b.order || 0));
+          if (Array.isArray(items)) {
+            items.sort((a, b) => (a.order || 0) - (b.order || 0));
 
-          for (const item of metadata) {
-            // Find file in 'stickers/' folder or root
-            // The export puts them in "stickers/"
-            let zipFile = zip.file(`stickers/${item.filename}`);
-            if (!zipFile) zipFile = zip.file(item.filename); // Try root
+            for (const item of items) {
+              let zipFile = zip.file(`stickers/${item.filename}`);
+              if (!zipFile) zipFile = zip.file(item.filename);
 
-            if (zipFile) {
-              const fileData = await zipFile.async('blob');
-              const objectUrl = URL.createObjectURL(fileData);
+              if (zipFile) {
+                const fileData = await zipFile.async('blob');
+                const objectUrl = URL.createObjectURL(fileData);
 
-              newImages.push({
-                id: item.id || Math.random().toString(36).substr(2, 9),
-                src: objectUrl,
-                croppedSrc: null, // We lose the cropped Blob, strictly speaking, unless we re-crop. Current app logic re-crops on edit/save. 
-                // However, the exported image IS the cropped one if we used croppedSrc? 
-                // Wait, generateZip uses (img.croppedSrc || img.src). 
-                // So the file in the zip IS the processed image if it was cropped?
-                // Re-reading generateZip: yes, it uses croppedSrc if available.
-                // So the imported 'src' is actually the *result*. 
-                // This means 'crop' settings might be invalid relative to this new image if it's already cropped?
-                // IF we want to be fully editable, we need original + params.
-                // UNLESS the user only exports final results.
-                // The prompt asked for "parameters (e.g. if something is taking two slots) and the order".
-                // If we export the *cropped* image as the source, then applying crop settings again will crop the crop.
-                // But `generateZip` exports the display image.
-                // Ideally, we should export ORIGINAL + crop params.
-                // But `generateZip` currently exports `img.croppedSrc || img.src`.
-                // So we are restoring the *result* as the new source.
-                // Thus, we should probably Reset crop params to default, OR accept that it's a "flattened" import.
-                // BUT the user wants "restoring settings".
-                // If I import a cropped image and set `crop` to `item.editSettings.crop`, it will try to crop the *already cropped* image.
-                // This implies `generateZip` should probably export the ORIGINAL image if we want full reversibility.
-                // However, I cannot change `generateZip` completely right now without potentially bloating the zip (exporting both?).
-                // Given the current state, if we import, we treat the image as the source.
-                // If we apply the old crop parameters to the *already cropped* image, it will be wrong.
-                // So for now, I will restore the "Settings" (Size, Fit, BG, Qty) but maybe clear the Crop/Zoom unless it matches?
-                // actually, if the exported image is the *output*, we should treat it as a new uncropped image with those settings applied?
-                // User said "describe the parameters... order".
-                // Let's restore the parameters. If the image is already cropped, the user might see a double crop if they edit?
-                // But generally, import/export is often "save my work".
-                // If I saved the *cropped* blob, I lost the original. 
-                // Use case: Save => Load => Continue printing.
-                // Use case: Save => Load => Edit? 
-                // If I edit, I'm editing the cropped version.
-                // So crop should reset to 0?
-                // Let's use the parameters provided, but be aware of this limitation.
-
-                crop: item.editSettings?.crop || { x: 0, y: 0 },
-                zoom: item.editSettings?.zoom || 1,
-                rotation: item.editSettings?.rotation || 0,
-                flip: item.editSettings?.flip || { horizontal: false, vertical: false },
-                backgroundColor: item.backgroundColor || globalBackground,
-                quantity: item.quantity || 1,
-                name: item.originalName || item.filename,
-                fitMode: item.fitMode || 'cover',
-                stickerSize: item.stickerSize || 'half'
-              });
+                newImages.push({
+                  id: item.id || Math.random().toString(36).substr(2, 9),
+                  src: objectUrl,
+                  croppedSrc: null,
+                  crop: item.editSettings?.crop || { x: 0, y: 0 },
+                  zoom: item.editSettings?.zoom || 1,
+                  rotation: item.editSettings?.rotation || 0,
+                  flip: item.editSettings?.flip || { horizontal: false, vertical: false },
+                  backgroundColor: item.backgroundColor || globalBackground,
+                  quantity: item.quantity || 1,
+                  name: item.originalName || item.filename,
+                  fitMode: item.fitMode || 'cover',
+                  stickerSize: item.stickerSize || 'half'
+                });
+              }
             }
           }
         } catch (err) {
           console.error("Error parsing metadata, falling back to legacy", err);
-          // Fallback handled below if newImages is empty? No, we should return or flag.
-          // Let's just alert.
           alert("Error processing metadata.json. Imported images might be incomplete.");
         }
 
-      }
-
-      if (newImages.length === 0) {
-        // --- Legacy / Simple Import (No metadata or metadata failed/empty) ---
-        // Filter out directories, MACOSX, and metadata.json itself
+      } else {
+        // Legacy import
         const entries = Object.keys(zip.files).filter(filename =>
           !zip.files[filename].dir &&
           !filename.startsWith('__MACOSX') &&
@@ -280,7 +267,6 @@ function App() {
         );
 
         for (const filename of entries) {
-          // Skip if it is not an image (loose check)
           if (!filename.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) continue;
 
           const fileData = await zip.files[filename].async('blob');
@@ -317,13 +303,16 @@ function App() {
     }
   };
 
-
-
   const applyGlobalSize = (size) => {
     if (window.confirm(`Set ALL stickers to ${size === 'full' ? 'Full Size (2 Slots)' : 'Half Size (1 Slot)'}?`)) {
       setImages(prev => prev.map(img => ({ ...img, stickerSize: size })));
     }
   }
+
+  const handlePaperSetupSave = (newConfig) => {
+    setPaperConfig(newConfig);
+    setIsPaperSetupOpen(false);
+  };
 
   const editingImage = images.find(i => i.id === editingId);
 
@@ -333,7 +322,10 @@ function App() {
         <div className="header-content">
           <div>
             <h1>Sticker Sheet Creator</h1>
-            <p>A4 size • 6x3 Grid</p>
+            <button className="btn-icon" onClick={() => setIsPaperSetupOpen(true)} title="Configure Paper & Grid">
+              <Settings size={16} style={{ marginRight: '6px' }} />
+              {paperConfig.name}
+            </button>
           </div>
           <div className="actions">
             {/* Global Controls */}
@@ -344,8 +336,6 @@ function App() {
                 <input type="color" value={globalBackground} onChange={(e) => setGlobalBackground(e.target.value)} title="Global Background Color" />
                 <button className="btn-small" onClick={applyGlobalBackground} title="Apply BG to All">Set All</button>
               </div>
-
-
 
               <div style={{ height: '24px', width: '1px', background: '#ccc' }}></div>
 
@@ -366,8 +356,8 @@ function App() {
             />
             <button className="btn-secondary" onClick={clearAllImages} disabled={images.length === 0} title="Clear All"><Trash2 size={18} /> Clear</button>
             <button className="btn-secondary" onClick={() => fileInputRef.current?.click()}><Upload size={18} /> Import ZIP</button>
-            <button className="btn-secondary" onClick={() => generateZip(images)} disabled={images.length === 0}><FileArchive size={18} /> Export ZIP</button>
-            <button className="btn-primary" onClick={() => generatePDF(images)} disabled={images.length === 0}><Download size={18} /> Export PDF</button>
+            <button className="btn-secondary" onClick={() => generateZip(images, paperConfig)} disabled={images.length === 0}><FileArchive size={18} /> Export ZIP</button>
+            <button className="btn-primary" onClick={() => generatePDF(images, paperConfig)} disabled={images.length === 0}><Download size={18} /> Export PDF</button>
           </div>
         </div>
       </header>
@@ -408,13 +398,14 @@ function App() {
         <div className="preview-area" {...getCanvasRootProps()}>
           <input {...getCanvasInputProps()} />
           <div className="preview-scale-wrapper" style={{ transform: 'scale(0.6)', transformOrigin: 'top center' }}>
-            <StickerSheet images={images} onInteract={startEditing} />
+            <StickerSheet images={images} onInteract={startEditing} paperConfig={paperConfig} />
           </div>
         </div>
       </div>
 
       <CropModal
         editingImage={editingImage}
+        paperConfig={paperConfig}
         crop={crop}
         zoom={zoom}
         rotation={rotation}
@@ -434,6 +425,13 @@ function App() {
         onCropComplete={onCropComplete}
         onCancel={() => setEditingId(null)}
         onSave={saveCrop}
+      />
+
+      <PaperSetupModal
+        isOpen={isPaperSetupOpen}
+        config={paperConfig}
+        onSave={handlePaperSetupSave}
+        onCancel={() => setIsPaperSetupOpen(false)}
       />
     </div>
   )

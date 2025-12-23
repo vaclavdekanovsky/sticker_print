@@ -2,72 +2,72 @@
 import { useMemo } from 'react';
 import './StickerSheet.css';
 
-// Dimensions in mm
+// Dimensions in mm (A4 Fixed for now, could be dynamic later)
 const A4_WIDTH_MM = 210;
 const A4_HEIGHT_MM = 297;
 
-// Sticker configuration (User Provided)
-const STICKER_WIDTH_MM = 68;
-const STICKER_HEIGHT_MM = 47;
-const COLS = 3;
-const ROWS = 6;
+export default function StickerSheet({ images, onInteract, paperConfig }) {
+    // Default config if missing (fallback)
+    const config = paperConfig || {
+        cols: 3, rows: 6,
+        margins: { top: 7.5, bottom: 7.5, left: 3, right: 3 },
+        gaps: { x: 0, y: 0 },
+        slotCount: 2,
+        slotDirection: 'vertical'
+    };
 
-// Margins (Calculated to center the grid)
-const GRID_WIDTH = COLS * STICKER_WIDTH_MM; // 204mm
-// const GRID_HEIGHT = ROWS * STICKER_HEIGHT_MM; // 282mm
-const MARGIN_X = (A4_WIDTH_MM - GRID_WIDTH) / 2; // 3mm
-const MARGIN_Y_COMBINED = A4_HEIGHT_MM - (ROWS * STICKER_HEIGHT_MM); // 15mm total
-const MARGIN_Y_TOP = MARGIN_Y_COMBINED / 2;
+    const { cols, rows, margins, gaps } = config;
 
-// CSS units (using mm generally works in print, but for screen we scale)
-const SCALE = 0.5; // Scale down for screen preview
+    // Calculate Cell Dimensions
+    const effectiveWidth = A4_WIDTH_MM - margins.left - margins.right;
+    const totalGapX = (cols - 1) * (gaps.x || 0);
+    const cellWidth = (effectiveWidth - totalGapX) / cols;
 
-export default function StickerSheet({ images, onInteract }) {
+    const effectiveHeight = A4_HEIGHT_MM - margins.top - margins.bottom;
+    const totalGapY = (rows - 1) * (gaps.y || 0);
+    const cellHeight = (effectiveHeight - totalGapY) / rows;
 
-    // Create a list of cells (each cell is 68x47mm, containing 1 full or 2 half stickers)
+    // Create a list of cells
     const cells = useMemo(() => {
         const cellList = [];
         let pendingHalf = null;
 
         images.forEach(img => {
-            // Use processed (cropped) image if available, else original
             const src = img.croppedSrc || img.src;
             const item = { ...img, displaySrc: src };
 
             for (let i = 0; i < img.quantity; i++) {
-                if (img.stickerSize === 'full') {
+                // Determine if we should treat this as a single unit or pairable unit
+                const slotCount = config.slotCount || 2;
+                const isFullCell = slotCount === 1 || img.stickerSize === 'full';
+
+                if (isFullCell) {
                     // Full sticker takes a whole cell
-                    // If we have a pending half, flush it first
                     if (pendingHalf) {
-                        cellList.push({ type: 'split', left: pendingHalf, right: null });
+                        cellList.push({ type: 'split', slot1: pendingHalf, slot2: null });
                         pendingHalf = null;
                     }
                     cellList.push({ type: 'full', item: item });
                 } else {
-                    // Half sticker (default)
+                    // Half sticker (share a cell)
                     if (pendingHalf) {
-                        // Pair with pending
-                        cellList.push({ type: 'split', left: pendingHalf, right: item });
+                        cellList.push({ type: 'split', slot1: pendingHalf, slot2: item });
                         pendingHalf = null;
                     } else {
-                        // Wait for a partner
                         pendingHalf = item;
                     }
                 }
             }
         });
 
-        // Flush remaining half
         if (pendingHalf) {
-            cellList.push({ type: 'split', left: pendingHalf, right: null });
+            cellList.push({ type: 'split', slot1: pendingHalf, slot2: null });
         }
 
         return cellList;
-    }, [images]);
+    }, [images, config]);
 
-    const CELLS_PER_PAGE = 18; // 3 cols * 6 rows
-
-    // Calculate pages
+    const CELLS_PER_PAGE = cols * rows;
     const totalPages = Math.max(1, Math.ceil(cells.length / CELLS_PER_PAGE));
 
     const pages = [];
@@ -76,13 +76,46 @@ export default function StickerSheet({ images, onInteract }) {
         pages.push(pageCells);
     }
 
+    const slotDir = config.slotDirection || 'vertical';
+
     return (
         <div className="sheet-container">
             {pages.map((pageCells, pageIdx) => (
-                <div key={pageIdx} className="a4-page" id={`sticker-sheet-preview-${pageIdx}`} style={{ marginBottom: '20px' }}>
-                    <div className="grid">
+                <div
+                    key={pageIdx}
+                    className="a4-page"
+                    id={`sticker-sheet-preview-${pageIdx}`}
+                    style={{
+                        marginBottom: '20px',
+                        paddingTop: `${margins.top}mm`,
+                        paddingBottom: `${margins.bottom}mm`,
+                        paddingLeft: `${margins.left}mm`,
+                        paddingRight: `${margins.right}mm`,
+                    }}
+                >
+                    <div
+                        className="grid"
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: `repeat(${cols}, ${cellWidth}mm)`,
+                            gridTemplateRows: `repeat(${rows}, ${cellHeight}mm)`,
+                            columnGap: `${gaps.x || 0}mm`,
+                            rowGap: `${gaps.y || 0}mm`,
+                            width: 'auto',
+                            height: 'auto',
+                            margin: '0 auto',
+                        }}
+                    >
                         {pageCells.map((cell, idx) => (
-                            <div key={idx} className="sticker-cell" style={{ position: 'relative' }}>
+                            <div
+                                key={idx}
+                                className={`sticker-cell ${slotDir}`} // Add class for CSS targeting
+                                style={{
+                                    position: 'relative',
+                                    width: `${cellWidth}mm`,
+                                    height: `${cellHeight}mm`
+                                }}
+                            >
                                 {cell.type === 'full' ? (
                                     <div
                                         className="sticker-slot full"
@@ -92,29 +125,31 @@ export default function StickerSheet({ images, onInteract }) {
                                             backgroundColor: cell.item.backgroundColor || '#ffffff'
                                         }}
                                         onClick={() => onInteract(cell.item.id)}
-                                        title="Click to Edit (Full Sticker)"
+                                        title="Click to Edit"
                                     >
                                         <img src={cell.item.displaySrc} alt="" style={{ width: '100%', height: '100%', objectFit: cell.item.fitMode || 'cover' }} />
                                     </div>
                                 ) : (
                                     <>
+                                        {/* Abstracted Slots: slot1 (Top/Left) and slot2 (Bottom/Right) */}
                                         <div
-                                            className="sticker-slot left"
-                                            onClick={() => cell.left && onInteract(cell.left.id)}
-                                            title={cell.left ? "Click to Edit" : ""}
-                                            style={{ cursor: cell.left ? 'pointer' : 'default', backgroundColor: cell.left?.backgroundColor || '#ffffff' }}
+                                            className="sticker-slot slot-1"
+                                            onClick={() => cell.slot1 && onInteract(cell.slot1.id)}
+                                            title={cell.slot1 ? "Click to Edit" : ""}
+                                            style={{ cursor: cell.slot1 ? 'pointer' : 'default', backgroundColor: cell.slot1?.backgroundColor || '#ffffff' }}
                                         >
-                                            {cell.left && <img src={cell.left.displaySrc} alt="" />}
+                                            {cell.slot1 && <img src={cell.slot1.displaySrc} alt="" />}
                                         </div>
                                         <div
-                                            className="sticker-slot right"
-                                            onClick={() => cell.right && onInteract(cell.right.id)}
-                                            title={cell.right ? "Click to Edit" : ""}
-                                            style={{ cursor: cell.right ? 'pointer' : 'default', backgroundColor: cell.right?.backgroundColor || '#ffffff' }}
+                                            className="sticker-slot slot-2"
+                                            onClick={() => cell.slot2 && onInteract(cell.slot2.id)}
+                                            title={cell.slot2 ? "Click to Edit" : ""}
+                                            style={{ cursor: cell.slot2 ? 'pointer' : 'default', backgroundColor: cell.slot2?.backgroundColor || '#ffffff' }}
                                         >
-                                            {cell.right && <img src={cell.right.displaySrc} alt="" />}
+                                            {cell.slot2 && <img src={cell.slot2.displaySrc} alt="" />}
                                         </div>
-                                        <div className="cut-line-vertical"></div>
+                                        {/* Dynamic Cut Line */}
+                                        <div className={slotDir === 'horizontal' ? 'cut-line-horizontal' : 'cut-line-vertical'}></div>
                                     </>
                                 )}
                             </div>
@@ -130,7 +165,7 @@ export default function StickerSheet({ images, onInteract }) {
             ))}
 
             <div className="sheet-info">
-                {images.reduce((acc, i) => acc + i.quantity, 0)} stickers ({totalPages} {totalPages === 1 ? 'page' : 'pages'})
+                {images.reduce((acc, i) => acc + i.quantity, 0)} images • {totalPages} {totalPages === 1 ? 'page' : 'pages'} • {cols}x{rows} Grid
             </div>
         </div>
     );

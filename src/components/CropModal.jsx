@@ -1,15 +1,15 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import Cropper from 'react-easy-crop';
 import { FlipHorizontal, FlipVertical, RotateCw, RotateCcw } from 'lucide-react';
 
 const CropModal = ({
     editingImage,
+    paperConfig,
     crop,
     zoom,
     rotation,
     flip,
     backgroundColor,
-    // imgFitMode, // Removed
     stickerSize,
     quantity,
     setCrop,
@@ -17,7 +17,6 @@ const CropModal = ({
     setRotation,
     setFlip,
     setBackgroundColor,
-    // setImgFitMode, // Removed
     setStickerSize,
     setQuantity,
     onCropComplete,
@@ -27,7 +26,45 @@ const CropModal = ({
     if (!editingImage) return null;
 
     const [mediaSize, setMediaSize] = React.useState({ width: 0, height: 0, naturalWidth: 0, naturalHeight: 0 });
-    const aspect = stickerSize === 'full' ? 68 / 47 : 34 / 47;
+
+    // Calculate Aspect Ratio based on Paper Config and Sticker Mode
+    const aspect = useMemo(() => {
+        // Default to Avery 6x3 if no config
+        const config = paperConfig || {
+            cols: 3, rows: 6,
+            margins: { top: 7.5, bottom: 7.5, left: 3, right: 3 },
+            gaps: { x: 0, y: 0 },
+            slotCount: 2,
+            slotDirection: 'vertical'
+        };
+
+        const effectiveW = 210 - (config.margins.left || 0) - (config.margins.right || 0);
+        const effectiveH = 297 - (config.margins.top || 0) - (config.margins.bottom || 0);
+        const totalGapX = ((config.cols || 3) - 1) * (config.gaps?.x || 0);
+        const totalGapY = ((config.rows || 6) - 1) * (config.gaps?.y || 0);
+
+        const cellW = (effectiveW - totalGapX) / (config.cols || 3);
+        const cellH = (effectiveH - totalGapY) / (config.rows || 6);
+
+        // If Sticker Size is "Full" (2 Slots) -> Use Whole Cell Ratio
+        if (stickerSize === 'full') {
+            return cellW / cellH;
+        }
+
+        // If Sticker Size is "1 Slot" -> Check Direction
+        const slotDir = config.slotDirection || 'vertical';
+        if (slotDir === 'horizontal') {
+            // Horizontal Split: Top/Bottom.
+            // Width is same, Height is Half.
+            // Aspect = W / (H/2) = 2 * (W/H)
+            return cellW / (cellH / 2);
+        } else {
+            // Vertical Split: Left/Right (Default)
+            // Width is Half, Height is same.
+            // Aspect = (W/2) / H = 0.5 * (W/H)
+            return (cellW / 2) / cellH;
+        }
+    }, [paperConfig, stickerSize]);
 
     const onMediaLoaded = (mediaSize) => {
         setMediaSize(mediaSize);
@@ -36,20 +73,14 @@ const CropModal = ({
     const handleFitHeight = () => {
         if (!mediaSize.naturalHeight) return;
         const imgAspect = mediaSize.naturalWidth / mediaSize.naturalHeight;
-        // If image is taller (imgAspect < aspect), it matches Width at Zoom 1 (Cover), so Height overflows.
-        // To fit Height, we must zoom out: newZoom = imgAspect / aspect.
-        // If image is wider (imgAspect > aspect), it matches Height at Zoom 1 (Cover).
         const newZoom = imgAspect < aspect ? imgAspect / aspect : 1;
         setZoom(newZoom);
-        setCrop({ x: 0, y: 0 }); // Optional: center it
+        setCrop({ x: 0, y: 0 });
     };
 
     const handleFitWidth = () => {
         if (!mediaSize.naturalWidth) return;
         const imgAspect = mediaSize.naturalWidth / mediaSize.naturalHeight;
-        // If image is wider (imgAspect > aspect), it matches Height at Zoom 1 (Cover), so Width overflows.
-        // To fit Width, we must zoom out: newZoom = aspect / imgAspect.
-        // If image is taller (imgAspect < aspect), it matches Width at Zoom 1 (Cover).
         const newZoom = imgAspect > aspect ? aspect / imgAspect : 1;
         setZoom(newZoom);
         setCrop({ x: 0, y: 0 });
@@ -59,13 +90,17 @@ const CropModal = ({
         setCrop({ x: 0, y: 0 });
     };
 
+    // Determine Cut Line style if in 2-Slot mode (Full)
+    const slotDir = paperConfig?.slotDirection || 'vertical';
+    const showCutLine = stickerSize === 'full' && (paperConfig?.slotCount || 2) === 2;
 
     return (
         <div className="modal">
             <div className="cropper-wrapper">
                 <div className="cropper-area" style={{
                     backgroundColor: backgroundColor,
-                    transform: `scaleX(${flip.horizontal ? -1 : 1}) scaleY(${flip.vertical ? -1 : 1})`
+                    transform: `scaleX(${flip.horizontal ? -1 : 1}) scaleY(${flip.vertical ? -1 : 1})`,
+                    position: 'relative' // For cut line absolute positioning
                 }}>
                     <Cropper
                         image={editingImage.src}
@@ -81,6 +116,29 @@ const CropModal = ({
                         minZoom={0.1}
                         restrictPosition={false}
                     />
+
+                    {/* Visual Cut Line Overlay for "2 Slots" mode */}
+                    {showCutLine && (
+                        <div
+                            style={{
+                                position: 'absolute',
+                                pointerEvents: 'none',
+                                zIndex: 10,
+                                opacity: 0.8,
+                                ...(slotDir === 'horizontal' ? {
+                                    // Horizontal Line (Left to Right, Centered Vertically)
+                                    top: '50%', left: '10%', right: '10%', height: '1px',
+                                    borderTop: '2px dashed rgba(255, 255, 255, 0.8)',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.5)'
+                                } : {
+                                    // Vertical Line (Top to Bottom, Centered Horizontally)
+                                    left: '50%', top: '10%', bottom: '10%', width: '1px',
+                                    borderLeft: '2px dashed rgba(255, 255, 255, 0.8)',
+                                    boxShadow: '1px 0 2px rgba(0,0,0,0.5)'
+                                })
+                            }}
+                        />
+                    )}
                 </div>
                 <div className="cropper-controls">
                     {/* Row 1: Quantity & Sticker Size */}

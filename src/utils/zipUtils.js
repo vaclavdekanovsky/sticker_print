@@ -1,10 +1,10 @@
 import { saveAs } from 'file-saver';
 
-export const generateZip = async (images) => {
+export const generateZip = async (images, paperConfig) => {
     const JSZip = (await import('jszip')).default;
     const zip = new JSZip();
     const folder = zip.folder("stickers");
-    const metadata = [];
+    const itemsMetadata = [];
 
     // Process images sequentially
     for (let i = 0; i < images.length; i++) {
@@ -32,7 +32,7 @@ export const generateZip = async (images) => {
             }
 
             // Add to metadata
-            metadata.push({
+            itemsMetadata.push({
                 order: i + 1,
                 id: img.id,
                 originalName: img.name,
@@ -54,7 +54,14 @@ export const generateZip = async (images) => {
         }
     }
 
-    // Add metadata file
+    // Add metadata file with both items and paperConfig
+    const metadata = {
+        version: "1.0",
+        createdAt: new Date().toISOString(),
+        paperConfig: paperConfig || null,
+        items: itemsMetadata
+    };
+
     zip.file("metadata.json", JSON.stringify(metadata, null, 2));
 
     const content = await zip.generateAsync({ type: "blob" });

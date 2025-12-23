@@ -1,54 +1,48 @@
-.sheet-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-}
-
+/* A4 Page Container (Preview) */
 .a4-page {
-    width: 210mm;
-    height: 297mm;
-    background: white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    /* Calculated Margins: 3mm Left/Right, 7.5mm Top/Bottom */
-    padding: 7.5mm 3mm;
-    box-sizing: border-box;
-    transform-origin: top center;
-}
-
-/* 6x3 Grid */
-.grid {
-    display: grid;
-    grid-template-columns: repeat(3, 68mm);
-    grid-template-rows: repeat(6, 47mm);
-    width: 204mm;
-    /* 3 * 68 */
-    height: 282mm;
-    /* 6 * 47 */
-    /* Center in parent padding if needed, but padding should handle it */
+    background-color: white;
     margin: 0 auto;
-    border: 1px dashed #eee;
-    /* Outer guide */
-}
-
-.sticker-cell {
-    border: 1px dashed #ccc;
-    /* Cut lines */
-    display: flex;
-    /* Split left/right */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
     position: relative;
     overflow: hidden;
-    width: 68mm;
-    height: 47mm;
 }
 
-.sticker-slot {
-    flex: 1;
+/* Page Number */
+.page-number {
+    font-family: sans-serif;
+    pointer-events: none;
+}
+
+/* Sticker Cell - Holds one "Unit" (e.g. one label) */
+.sticker-cell {
+    background-color: transparent;
     overflow: hidden;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    background: #f8f8f8;
+    /* Default Default is row (Vertical Split: Left | Right) */
+    flex-direction: row;
+}
+
+/* Vertical Split (Standard) */
+.sticker-cell.vertical {
+    flex-direction: row;
+}
+
+/* Horizontal Split (Top/Bottom) */
+.sticker-cell.horizontal {
+    flex-direction: column;
+}
+
+/* Slots take available space inside the cell */
+.sticker-slot {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    transition: opacity 0.2s;
+}
+
+.sticker-slot:hover {
+    opacity: 0.9;
 }
 
 .sticker-slot img {
@@ -58,18 +52,72 @@
     display: block;
 }
 
+/* Cut Lines (Darker for visibility) */
 .cut-line-vertical {
     position: absolute;
-    left: 50%;
     top: 0;
     bottom: 0;
+    left: 50%;
     width: 1px;
-    background: rgba(0, 0, 0, 0.1);
-    border-left: 1px dashed #999;
+    background-color: #bbb;
     transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 10;
 }
 
-.sheet-info {
-    font-size: 0.9rem;
-    color: #666;
+.cut-line-horizontal {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: #bbb;
+    transform: translateY(-50%);
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* Print Adjustments */
+@media print {
+    body {
+        background: white;
+        margin: 0;
+        padding: 0;
+    }
+
+    .container,
+    header,
+    .sidebar,
+    .crop-modal-overlay,
+    .paper-setup-modal,
+    .modal-overlay {
+        display: none !important;
+    }
+
+    .main-content {
+        display: block;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        height: auto;
+    }
+
+    .preview-area {
+        background: white;
+        padding: 0;
+        overflow: visible;
+    }
+
+    .preview-scale-wrapper {
+        transform: none !important;
+        width: 100%;
+    }
+
+    .a4-page {
+        box-shadow: none;
+        margin: 0;
+        page-break-after: always;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
 }
