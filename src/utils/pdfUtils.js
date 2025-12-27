@@ -41,7 +41,7 @@ const A4_HEIGHT_MM = 297;
 // Scale Factor for 300 DPI
 const SCALE_FACTOR = 11.8;
 
-export const optimizeImageForPDF = (base64Str, targetW, targetH, bgColor = '#ffffff', fitMode = 'cover') => {
+export const optimizeImageForPDF = (base64Str, targetW, targetH, bgColor = '#ffffff', fitMode = 'cover', zoom = 1) => {
     return new Promise((resolve) => {
         const img = new Image();
         img.src = base64Str;
@@ -75,6 +75,19 @@ export const optimizeImageForPDF = (base64Str, targetW, targetH, bgColor = '#fff
                     dWidth = pixelH * sourceAspect;
                     dx = (pixelW - dWidth) / 2;
                 }
+
+                // Zoom implementation for Contain is tricky, simpler to apply to Draw params
+                // But for now, let's Stick to "Cover" being the main use case for zoom.
+                // If Zoom != 1, we can just scale the destination rect
+                if (zoom !== 1) {
+                    const zWidth = dWidth * zoom;
+                    const zHeight = dHeight * zoom;
+                    dx -= (zWidth - dWidth) / 2;
+                    dy -= (zHeight - dHeight) / 2;
+                    dWidth = zWidth;
+                    dHeight = zHeight;
+                }
+
                 ctx.drawImage(img, 0, 0, img.width, img.height, dx, dy, dWidth, dHeight);
 
             } else {
@@ -90,6 +103,17 @@ export const optimizeImageForPDF = (base64Str, targetW, targetH, bgColor = '#fff
                     sx = 0;
                     sy = (img.height - sHeight) / 2;
                 }
+
+                // Apply Zoom to Source Rect
+                if (zoom !== 1) {
+                    const zWidth = sWidth / zoom;
+                    const zHeight = sHeight / zoom;
+                    sx += (sWidth - zWidth) / 2;
+                    sy += (sHeight - zHeight) / 2;
+                    sWidth = zWidth;
+                    sHeight = zHeight;
+                }
+
                 ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, pixelW, pixelH);
             }
 
@@ -134,7 +158,7 @@ export const generatePDF = async (images, paperConfig) => {
 
     images.forEach(img => {
         const src = img.croppedSrc || img.src;
-        // We need to keep the image object to access id/bg/fitMode
+        // We need to keep the image object to access id/bg/fitMode/zoom
         const item = { ...img, displaySrc: src };
 
         for (let i = 0; i < img.quantity; i++) {
@@ -182,11 +206,14 @@ export const generatePDF = async (images, paperConfig) => {
                 const bg = item.backgroundColor || '#ffffff';
                 const fitMode = item.croppedSrc ? 'cover' : (item.fitMode || 'cover');
 
+                // Use zoom ONLY if no croppedSrc (custom crop overrides zoom)
+                const zoom = item.croppedSrc ? 1 : (item.zoom || 1);
+
                 // Determine target size
                 const tW = item.targetType === 'full' ? CELL_W : SLOT_W;
                 const tH = item.targetType === 'full' ? CELL_H : SLOT_H;
 
-                const optimized = await optimizeImageForPDF(src, tW, tH, bg, fitMode);
+                const optimized = await optimizeImageForPDF(src, tW, tH, bg, fitMode, zoom);
                 processedImages.set(cacheKey, optimized);
             }
         }

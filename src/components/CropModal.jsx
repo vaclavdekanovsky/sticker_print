@@ -46,8 +46,8 @@ const CropModal = ({
         const cellW = (effectiveW - totalGapX) / (config.cols || 3);
         const cellH = (effectiveH - totalGapY) / (config.rows || 6);
 
-        // If Sticker Size is "Full" (2 Slots) -> Use Whole Cell Ratio
-        if (stickerSize === 'full') {
+        // If Sticker Size is "Full" (2 Slots) OR Paper is configured for 1 Slot -> Use Whole Cell Ratio
+        if (stickerSize === 'full' || (config.slotCount || 2) === 1) {
             return cellW / cellH;
         }
 
@@ -114,6 +114,7 @@ const CropModal = ({
                         onZoomChange={setZoom}
                         onRotationChange={setRotation}
                         minZoom={0.1}
+                        maxZoom={10}
                         restrictPosition={false}
                     />
 
@@ -148,9 +149,9 @@ const CropModal = ({
                             <input
                                 type="number"
                                 min="1"
-                                max="99"
+                                max="100"
                                 value={quantity}
-                                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
                                 style={{ width: '60px', padding: '4px' }}
                             />
                         </div>
@@ -160,7 +161,13 @@ const CropModal = ({
                                 <button
                                     className={`btn-small ${stickerSize === 'half' ? 'active' : ''}`}
                                     onClick={() => setStickerSize('half')}
-                                    style={{ background: stickerSize === 'half' ? '#646cff' : '#eee', color: stickerSize === 'half' ? 'white' : 'black' }}
+                                    disabled={(paperConfig?.slotCount || 2) === 1}
+                                    style={{
+                                        background: stickerSize === 'half' ? '#646cff' : '#eee',
+                                        color: stickerSize === 'half' ? 'white' : 'black',
+                                        opacity: (paperConfig?.slotCount || 2) === 1 ? 0.5 : 1
+                                    }}
+                                    title={(paperConfig?.slotCount || 2) === 1 ? "Not available in 1-slot mode" : "Half Size"}
                                 >
                                     1 Slot
                                 </button>
@@ -169,7 +176,7 @@ const CropModal = ({
                                     onClick={() => setStickerSize('full')}
                                     style={{ background: stickerSize === 'full' ? '#646cff' : '#eee', color: stickerSize === 'full' ? 'white' : 'black' }}
                                 >
-                                    2 Slots
+                                    {(paperConfig?.slotCount || 2) === 1 ? "Full (1 Slot)" : "2 Slots"}
                                 </button>
                             </div>
                         </div>
@@ -222,15 +229,29 @@ const CropModal = ({
                 {/* Row 4: Zoom */}
                 <div className="control-row">
                     <label>Zoom</label>
-                    <input
-                        type="range"
-                        value={zoom}
-                        min={0.1}
-                        max={3}
-                        step={0.1}
-                        onChange={(e) => setZoom(Number(e.target.value))}
-                        className="zoom-range"
-                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+                        <input
+                            type="range"
+                            value={zoom}
+                            min={0.1}
+                            max={3}
+                            step={0.01}
+                            onChange={(e) => setZoom(Number(e.target.value))}
+                            className="zoom-range"
+                            style={{ flex: 1 }}
+                        />
+                        <input
+                            type="number"
+                            value={zoom}
+                            min={0.1}
+                            max={10}
+                            step={0.01}
+                            onChange={(e) => setZoom(Number(e.target.value))}
+                            style={{ width: '60px', padding: '4px' }}
+                            title="Exact Zoom Value"
+                        />
+                    </div>
+                    <button className="btn-small" onClick={() => setZoom(1)} title="reset zoom">100%</button>
                     <button className="btn-small" onClick={() => setZoom(0.1)} title="Fit Entire Image">Fit</button>
                 </div>
 

@@ -51,27 +51,26 @@
     overflow-y: auto;
 }
 
-.preset-buttons {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-}
-
-.preset-buttons button {
-    flex: 1;
-    padding: 0.5rem;
-    font-size: 0.9rem;
-    background: #f0f0f0;
-    border: 1px solid #ddd;
+.preset-select {
+    width: 100%;
+    padding: 0.6rem;
+    border: 1px solid #ccc;
     border-radius: 4px;
+    font-size: 0.95rem;
+    background-color: #fff;
+    cursor: pointer;
+    color: #333;
+    transition: border-color 0.2s;
 }
 
-.preset-buttons button.active {
-    background: #e0e7ff;
-    /* light indigo */
+.preset-select:hover {
     border-color: #646cff;
-    color: #4338ca;
-    font-weight: 600;
+}
+
+.preset-select:focus {
+    outline: none;
+    border-color: #646cff;
+    box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.1);
 }
 
 .form-row {

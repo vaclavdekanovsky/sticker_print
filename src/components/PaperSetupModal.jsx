@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { PAPER_PRESETS } from '../config/paperPresets';
 import './PaperSetupModal.css';
 
 export default function PaperSetupModal({ config, onSave, onCancel, isOpen }) {
@@ -30,42 +31,9 @@ export default function PaperSetupModal({ config, onSave, onCancel, isOpen }) {
     };
 
     const applyPreset = (presetName) => {
-        if (presetName === '6x3') {
-            setLocalConfig({
-                ...localConfig,
-                id: '6x3',
-                name: '6x3 Grid (68x47mm)',
-                cols: 3,
-                rows: 6,
-                margins: { top: 7.5, bottom: 7.5, left: 3, right: 3 },
-                gaps: { x: 0, y: 0 },
-                slotCount: 2,
-                slotDirection: 'vertical'
-            });
-        } else if (presetName === '2x4') {
-            setLocalConfig({
-                ...localConfig,
-                id: '2x4',
-                name: '2x4 Grid (105x74mm)',
-                cols: 2,
-                rows: 4,
-                margins: { top: 0, bottom: 0, left: 0, right: 0 },
-                gaps: { x: 0, y: 0 },
-                slotCount: 2,
-                slotDirection: 'vertical'
-            });
-        } else if (presetName === '3x8') {
-            setLocalConfig({
-                ...localConfig,
-                id: '3x8',
-                name: '3x8 Grid (70x36mm)',
-                cols: 3,
-                rows: 8,
-                margins: { top: 4.5, bottom: 4.5, left: 0, right: 0 },
-                gaps: { x: 0, y: 0 },
-                slotCount: 1,
-                slotDirection: 'vertical'
-            });
+        const preset = PAPER_PRESETS[presetName];
+        if (preset) {
+            setLocalConfig({ ...localConfig, ...preset });
         }
     };
 
@@ -85,13 +53,16 @@ export default function PaperSetupModal({ config, onSave, onCancel, isOpen }) {
     // Calculate Per-Sticker Size
     let stickerW = cellW;
     let stickerH = cellH;
-    if ((localConfig.slotCount || 2) === 2) {
+    const currentSlotCount = localConfig.slotCount === undefined ? 2 : localConfig.slotCount;
+    if (currentSlotCount === 2) {
         if ((localConfig.slotDirection || 'vertical') === 'vertical') {
             stickerW = cellW / 2;
         } else {
             stickerH = cellH / 2;
         }
     }
+
+    const totalLabels = localConfig.cols * localConfig.rows * currentSlotCount;
 
     return (
         <div className="modal-overlay">
@@ -104,26 +75,35 @@ export default function PaperSetupModal({ config, onSave, onCancel, isOpen }) {
                 <div className="modal-body">
                     <div className="form-group presets">
                         <label>Presets:</label>
-                        <div className="preset-buttons">
-                            <button
-                                className={localConfig.id === '6x3' ? 'active' : ''}
-                                onClick={() => applyPreset('6x3')}
-                            >
-                                6x3 (68x47mm)
-                            </button>
-                            <button
-                                className={localConfig.id === '2x4' ? 'active' : ''}
-                                onClick={() => applyPreset('2x4')}
-                            >
-                                2x4 (105x74mm)
-                            </button>
-                            <button
-                                className={localConfig.id === '3x8' ? 'active' : ''}
-                                onClick={() => applyPreset('3x8')}
-                            >
-                                3x8 (70x36mm)
-                            </button>
-                        </div>
+                        <select
+                            className="preset-select"
+                            value={localConfig.id || ''}
+                            onChange={(e) => applyPreset(e.target.value)}
+                        >
+                            <option value="">-- Choose a Preset --</option>
+                            {Object.values(PAPER_PRESETS)
+                                .map(p => {
+                                    const psCount = p.slotCount === undefined ? 2 : p.slotCount;
+                                    const pTotalLabels = p.cols * p.rows * psCount;
+                                    const effW = 210 - p.margins.left - p.margins.right;
+                                    const tx = (p.cols - 1) * p.gaps.x;
+                                    const cW = (effW - tx) / p.cols;
+                                    const pStickerW = (psCount === 2 && (p.slotDirection || 'vertical') === 'vertical') ? cW / 2 : cW;
+
+                                    return { ...p, totalLabels: pTotalLabels, stickerW: pStickerW };
+                                })
+                                .sort((a, b) => {
+                                    if (a.totalLabels !== b.totalLabels) {
+                                        return a.totalLabels - b.totalLabels;
+                                    }
+                                    return a.stickerW - b.stickerW;
+                                })
+                                .map(preset => (
+                                    <option key={preset.id} value={preset.id}>
+                                        {preset.name} - {preset.totalLabels} Labels
+                                    </option>
+                                ))}
+                        </select>
                     </div>
 
                     <div className="form-row">
@@ -143,6 +123,12 @@ export default function PaperSetupModal({ config, onSave, onCancel, isOpen }) {
                                 onChange={(e) => handleChange('rows', parseInt(e.target.value) || 1)}
                             />
                         </div>
+                    </div>
+
+                    <div className="total-labels-summary" style={{ textAlign: 'center', margin: '0.5rem 0', padding: '0.5rem', background: '#f8f9fa', borderRadius: '4px', border: '1px solid #dee2e6' }}>
+                        <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#2563eb' }}>
+                            Total Labels: {totalLabels}
+                        </span>
                     </div>
 
                     <fieldset>

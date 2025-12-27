@@ -99,10 +99,12 @@ export default function StickerSheet({ images, onInteract, paperConfig }) {
                             display: 'grid',
                             gridTemplateColumns: `repeat(${cols}, ${cellWidth}mm)`,
                             gridTemplateRows: `repeat(${rows}, ${cellHeight}mm)`,
-                            columnGap: `${gaps.x || 0}mm`,
-                            rowGap: `${gaps.y || 0}mm`,
-                            width: 'auto',
-                            height: 'auto',
+                            columnGap: gaps.x > 0 ? `${gaps.x}mm` : '0',
+                            rowGap: gaps.y > 0 ? `${gaps.y}mm` : '0',
+                            justifyItems: 'stretch',
+                            alignItems: 'stretch',
+                            width: 'fit-content',
+                            height: 'fit-content',
                             margin: '0 auto',
                         }}
                     >
@@ -127,7 +129,7 @@ export default function StickerSheet({ images, onInteract, paperConfig }) {
                                         onClick={() => onInteract(cell.item.id)}
                                         title="Click to Edit"
                                     >
-                                        <img src={cell.item.displaySrc} alt="" style={{ width: '100%', height: '100%', objectFit: cell.item.fitMode || 'cover' }} />
+                                        <img src={cell.item.displaySrc} alt="" style={{ width: '100%', height: '100%', objectFit: cell.item.fitMode || 'cover', transform: `scale(${cell.item.croppedSrc ? 1 : (cell.item.zoom || 1)})` }} />
                                     </div>
                                 ) : (
                                     <>
@@ -138,7 +140,7 @@ export default function StickerSheet({ images, onInteract, paperConfig }) {
                                             title={cell.slot1 ? "Click to Edit" : ""}
                                             style={{ cursor: cell.slot1 ? 'pointer' : 'default', backgroundColor: cell.slot1?.backgroundColor || '#ffffff' }}
                                         >
-                                            {cell.slot1 && <img src={cell.slot1.displaySrc} alt="" />}
+                                            {cell.slot1 && <img src={cell.slot1.displaySrc} alt="" style={{ width: '100%', height: '100%', objectFit: cell.slot1.fitMode || 'cover', transform: `scale(${cell.slot1.croppedSrc ? 1 : (cell.slot1.zoom || 1)})` }} />}
                                         </div>
                                         <div
                                             className="sticker-slot slot-2"
@@ -146,7 +148,7 @@ export default function StickerSheet({ images, onInteract, paperConfig }) {
                                             title={cell.slot2 ? "Click to Edit" : ""}
                                             style={{ cursor: cell.slot2 ? 'pointer' : 'default', backgroundColor: cell.slot2?.backgroundColor || '#ffffff' }}
                                         >
-                                            {cell.slot2 && <img src={cell.slot2.displaySrc} alt="" />}
+                                            {cell.slot2 && <img src={cell.slot2.displaySrc} alt="" style={{ width: '100%', height: '100%', objectFit: cell.slot2.fitMode || 'cover', transform: `scale(${cell.slot2.croppedSrc ? 1 : (cell.slot2.zoom || 1)})` }} />}
                                         </div>
                                         {/* Dynamic Cut Line */}
                                         <div className={slotDir === 'horizontal' ? 'cut-line-horizontal' : 'cut-line-vertical'}></div>

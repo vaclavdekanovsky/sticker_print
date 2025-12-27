@@ -5,13 +5,15 @@ A web application for creating, organizing, and printing custom sticker sheets (
 ## Features
 
 -   **Easy Image Upload**: Drag and drop images directly or import a ZIP file.
--   **A4 Print Layout**: Automatically arranges stickers on a standard A4 grid (3 columns x 6 rows).
+-   **Flexible Paper Layout**: Choose from standard presets (e.g., 2x4, 3x6) or define custom rows and columns for any A4 sticker sheet.
+-   **Multipage Support**: Automatically handles overflow by generating multiple pages in both the preview and PDF export.
 -   **Advanced Editing**:
     -   **Crop & Zoom**: Focus on the best part of your image.
     -   **Fit Modes**: Choose between **Fill** (crop to fill the slot) or **Whole** (fit entire image without cropping).
     -   **Sticker Sizes**: Support for **1 Slot** (Standard) or **2 Slots** (Wide/Full Width) stickers.
     -   **Rotate & Flip**: Fine-tune orientation with 90° rotation buttons and flip controls.
     -   **Background Color**: Set custom background colors for individual stickers or the entire sheet.
+-   **Global Settings**: One-click actions to apply background colors, sticker sizes, or zoom levels to all images on the sheet.
 -   **Drag-and-Drop Organization**: Reorder stickers in the sidebar simply by dragging them.
 -   **PDF Export**: Generates a high-quality A4 PDF ready for printing.
 -   **Smart ZIP Export/Import**: 
@@ -21,15 +23,16 @@ A web application for creating, organizing, and printing custom sticker sheets (
 
 ## Quick Start Guide
 
-1.  **Add Images**: Drag images onto the "Drag & drop images here" area or click the "+" button.
-2.  **Organize**: Drag items in the left sidebar to change their order on the sheet.
-3.  **Edit**: Click the "Crop" icon on an image (or click the sticker in the preview) to open the editor.
+1.  **Configure Paper**: Click the gear icon to set your paper size, rows, and columns.
+2.  **Add Images**: Drag images onto the "Drag & drop images here" area or click the "+" button.
+3.  **Organize**: Drag items in the left sidebar to change their order on the sheet.
+4.  **Edit**: Click the "Crop" icon on an image (or click the sticker in the preview) to open the editor.
     *   **Qty**: Set how many copies of this sticker you want (directly in the editor).
     *   **Size**: Toggle between "1 Slot" and "2 Slots".
     *   **Fit**: Use "Fill" for full-bleed photos or "Whole" for logos/clipart.
     *   **Rotate/Zoom**: Adjust to perfection.
-4.  **Global Settings**: Use the top toolbar to set the background color or size for *all* stickers at once.
-5.  **Export**: Click "Export PDF" to download your print-ready file.
+5.  **Global Settings**: Use the **Global Settings** button (Gear icon) to apply background color, size, or zoom to *all* stickers at once.
+6.  **Export**: Click "Export PDF" to download your print-ready file.
 
 ## Tech Stack
 

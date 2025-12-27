@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Plus, Download, FileArchive, Upload, Trash2, GripVertical, Settings } from 'lucide-react'
+import { Plus, Download, FileArchive, Upload, Trash2, GripVertical, Settings, SlidersHorizontal } from 'lucide-react'
 import JSZip from 'jszip'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -8,9 +8,11 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import getCroppedImg from './utils/cropUtils'
 import { generatePDF } from './utils/pdfUtils'
 import { generateZip } from './utils/zipUtils'
+import { PAPER_PRESETS, DEFAULT_PRESET_ID } from './config/paperPresets'
 import StickerSheet from './components/StickerSheet'
 import CropModal from './components/CropModal'
 import PaperSetupModal from './components/PaperSetupModal'
+import GlobalSettingsModal from './components/GlobalSettingsModal'
 import SortableImageItem from './components/SortableImageItem'
 import './App.css'
 
@@ -20,17 +22,9 @@ function App() {
   const fileInputRef = useRef(null);
 
   // Paper Config State
-  const [paperConfig, setPaperConfig] = useState({
-    id: '6x3',
-    name: '6x3 Grid (68x47mm)',
-    cols: 3,
-    rows: 6,
-    margins: { top: 7.5, bottom: 7.5, left: 3, right: 3 },
-    gaps: { x: 0, y: 0 },
-    slotCount: 2,
-    slotDirection: 'vertical'
-  });
+  const [paperConfig, setPaperConfig] = useState(PAPER_PRESETS[DEFAULT_PRESET_ID]);
   const [isPaperSetupOpen, setIsPaperSetupOpen] = useState(false);
+  const [isGlobalSettingsOpen, setIsGlobalSettingsOpen] = useState(false);
 
   // Global Settings
   const [globalBackground, setGlobalBackground] = useState('#ffffff');
@@ -297,9 +291,10 @@ function App() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const applyGlobalBackground = () => {
+  const applyGlobalBackground = (color) => {
     if (window.confirm("Apply this background color to ALL stickers?")) {
-      setImages(prev => prev.map(img => ({ ...img, backgroundColor: globalBackground })));
+      setGlobalBackground(color);
+      setImages(prev => prev.map(img => ({ ...img, backgroundColor: color })));
     }
   };
 
@@ -314,6 +309,118 @@ function App() {
     setIsPaperSetupOpen(false);
   };
 
+  // Helper: Calculate Aspect Ratio (Mirroring CropModal logic)
+  const getAspectRatio = (config, stickerSize) => {
+    // Default to config or Avery 6x3
+    const c = config || PAPER_PRESETS[DEFAULT_PRESET_ID];
+
+    const effectiveW = 210 - (c.margins.left || 0) - (c.margins.right || 0);
+    const effectiveH = 297 - (c.margins.top || 0) - (c.margins.bottom || 0);
+    const totalGapX = ((c.cols || 3) - 1) * (c.gaps?.x || 0);
+    const totalGapY = ((c.rows || 6) - 1) * (c.gaps?.y || 0);
+
+    const cellW = (effectiveW - totalGapX) / (c.cols || 3);
+    const cellH = (effectiveH - totalGapY) / (c.rows || 6);
+
+    // If Sticker Size is "Full" (2 Slots) OR Paper is configured for 1 Slot
+    if (stickerSize === 'full' || (c.slotCount || 1) === 1) {
+      return cellW / cellH; // Whole Cell
+    }
+
+    // "1 Slot" - Check Direction
+    const slotDir = c.slotDirection || 'vertical';
+    if (slotDir === 'horizontal') {
+      return cellW / (cellH / 2); // Horizontal Split
+    } else {
+      return (cellW / 2) / cellH; // Vertical Split
+    }
+  };
+
+  const applyZoomToAll = async (zoomValue) => {
+    if (window.confirm(`Apply zoom level ${zoomValue} to ALL stickers?\n\nThis will re-process all images to be perfectly centered and filled. It may take a few seconds.`)) {
+
+      const newImages = [...images];
+
+      // Batch process
+      const promises = newImages.map(async (img) => {
+        try {
+          // 1. Determine Aspect Ratio needed
+          const aspect = getAspectRatio(paperConfig, img.stickerSize);
+
+          // 2. Load Image to get natural dimensions
+          const imageEl = await new Promise((resolve, reject) => {
+            const i = new Image();
+            i.onload = () => resolve(i);
+            i.onerror = reject;
+            i.src = img.src;
+          });
+
+          // 3. Calculate "Cover" Dimensions centered
+          const imgAspect = imageEl.width / imageEl.height;
+          let cropWidth, cropHeight;
+
+          // Logic for "Cover" fit
+          if (imgAspect > aspect) {
+            // Image is wider than slot -> Height limits
+            cropHeight = imageEl.height;
+            cropWidth = imageEl.height * aspect;
+          } else {
+            // Slot is wider than image -> Width limits
+            cropWidth = imageEl.width;
+            cropHeight = imageEl.width / aspect;
+          }
+
+          // 4. Apply Zoom (shrink the crop area)
+          // Zoom > 1 means we show LESS of the image (smaller crop rect)
+          const zoomedWidth = cropWidth / zoomValue;
+          const zoomedHeight = cropHeight / zoomValue;
+
+          // 5. Center the crop
+          const x = (imageEl.width - zoomedWidth) / 2;
+          const y = (imageEl.height - zoomedHeight) / 2;
+
+          const pixelCrop = { x, y, width: zoomedWidth, height: zoomedHeight };
+
+          // 6. Generate Blob
+          const croppedBase64 = await getCroppedImg(
+            img.src,
+            pixelCrop,
+            0, // rotation
+            img.flip || { horizontal: false, vertical: false },
+            img.backgroundColor || '#ffffff'
+          );
+
+          const res = await fetch(croppedBase64);
+          const blob = await res.blob();
+          const croppedBlobUrl = URL.createObjectURL(blob);
+
+          // Cleanup old blob if needed
+          if (img.croppedSrc && img.croppedSrc.startsWith('blob:')) {
+            URL.revokeObjectURL(img.croppedSrc);
+          }
+
+          return {
+            ...img,
+            croppedSrc: croppedBlobUrl,
+            crop: { x: 0, y: 0 }, // Reset UI crop to center since it's baked in
+            zoom: zoomValue
+          };
+
+        } catch (err) {
+          console.error("Failed to process image for bulk zoom", img.id, err);
+          return img; // Return original on failure
+        }
+      });
+
+      const processedImages = await Promise.all(promises);
+      setImages(processedImages);
+    }
+  };
+
+  const handleApplyGlobalZoom = (zoomValue) => {
+    applyZoomToAll(zoomValue);
+  };
+
   const editingImage = images.find(i => i.id === editingId);
 
   return (
@@ -326,26 +433,12 @@ function App() {
               <Settings size={16} style={{ marginRight: '6px' }} />
               {paperConfig.name}
             </button>
+            <button className="btn-icon" onClick={() => setIsGlobalSettingsOpen(true)} title="Global Settings">
+              <SlidersHorizontal size={16} style={{ marginRight: '6px' }} />
+              Global Settings
+            </button>
           </div>
           <div className="actions">
-            {/* Global Controls */}
-            <div className="global-controls" style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', background: '#f5f5f5', padding: '0.4rem 0.8rem', borderRadius: '6px' }}>
-
-              {/* Background */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <input type="color" value={globalBackground} onChange={(e) => setGlobalBackground(e.target.value)} title="Global Background Color" />
-                <button className="btn-small" onClick={applyGlobalBackground} title="Apply BG to All">Set All</button>
-              </div>
-
-              <div style={{ height: '24px', width: '1px', background: '#ccc' }}></div>
-
-              {/* Size Mode */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <button className="btn-small" onClick={() => applyGlobalSize('half')} title="Set All to Half (1 Slot)">1 Slot</button>
-                <button className="btn-small" onClick={() => applyGlobalSize('full')} title="Set All to Full (2 Slots)">2 Slots</button>
-              </div>
-
-            </div>
 
             <input
               type="file"
@@ -425,6 +518,7 @@ function App() {
         onCropComplete={onCropComplete}
         onCancel={() => setEditingId(null)}
         onSave={saveCrop}
+        onApplyZoomToAll={applyZoomToAll}
       />
 
       <PaperSetupModal
@@ -432,6 +526,15 @@ function App() {
         config={paperConfig}
         onSave={handlePaperSetupSave}
         onCancel={() => setIsPaperSetupOpen(false)}
+      />
+
+      <GlobalSettingsModal
+        isOpen={isGlobalSettingsOpen}
+        onClose={() => setIsGlobalSettingsOpen(false)}
+        onApplyBackground={applyGlobalBackground}
+        onApplySize={applyGlobalSize}
+        onApplyZoom={handleApplyGlobalZoom}
+        currentGlobalBackground={globalBackground}
       />
     </div>
   )

@@ -21,6 +21,9 @@
     display: flex;
     /* Default Default is row (Vertical Split: Left | Right) */
     flex-direction: row;
+    border: none;
+    margin: 0;
+    padding: 0;
 }
 
 /* Vertical Split (Standard) */
@@ -39,6 +42,9 @@
     position: relative;
     overflow: hidden;
     transition: opacity 0.2s;
+    border: none;
+    margin: 0;
+    padding: 0;
 }
 
 .sticker-slot:hover {

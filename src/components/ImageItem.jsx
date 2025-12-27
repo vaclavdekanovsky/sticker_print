@@ -13,7 +13,7 @@ const ImageItem = React.memo(({ img, onUpdate, onEdit, onRemove }) => {
                     <input
                         type="number"
                         min="1"
-                        max="36"
+                        max="100"
                         value={img.quantity}
                         onChange={(e) => onUpdate(img.id, { quantity: parseInt(e.target.value) || 1 })}
                         onPointerDown={(e) => e.stopPropagation()}
