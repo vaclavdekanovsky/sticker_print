@@ -9,8 +9,9 @@ const getGridDimensions = (config) => {
         slotDirection: 'vertical'
     };
 
-    const A4_WIDTH_MM = 210;
-    const A4_HEIGHT_MM = 297;
+    const isLandscape = c.orientation === 'landscape';
+    const A4_WIDTH_MM = isLandscape ? 297 : 210;
+    const A4_HEIGHT_MM = isLandscape ? 210 : 297;
 
     // Calculate Cell Dimensions
     const effectiveW = A4_WIDTH_MM - (c.margins?.left || 0) - (c.margins?.right || 0);
@@ -128,7 +129,7 @@ export const generatePDF = async (images, paperConfig) => {
     const { jsPDF } = await import('jspdf');
 
     const doc = new jsPDF({
-        orientation: 'portrait',
+        orientation: paperConfig.orientation || 'portrait',
         unit: 'mm',
         format: 'a4'
     });

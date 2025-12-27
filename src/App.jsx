@@ -311,11 +311,12 @@ function App() {
 
   // Helper: Calculate Aspect Ratio (Mirroring CropModal logic)
   const getAspectRatio = (config, stickerSize) => {
-    // Default to config or Avery 6x3
-    const c = config || PAPER_PRESETS[DEFAULT_PRESET_ID];
+    const isLandscape = c.orientation === 'landscape';
+    const pageWidth = isLandscape ? 297 : 210;
+    const pageHeight = isLandscape ? 210 : 297;
 
-    const effectiveW = 210 - (c.margins.left || 0) - (c.margins.right || 0);
-    const effectiveH = 297 - (c.margins.top || 0) - (c.margins.bottom || 0);
+    const effectiveW = pageWidth - (c.margins.left || 0) - (c.margins.right || 0);
+    const effectiveH = pageHeight - (c.margins.top || 0) - (c.margins.bottom || 0);
     const totalGapX = ((c.cols || 3) - 1) * (c.gaps?.x || 0);
     const totalGapY = ((c.rows || 6) - 1) * (c.gaps?.y || 0);
 

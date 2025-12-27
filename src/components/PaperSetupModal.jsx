@@ -30,18 +30,90 @@ export default function PaperSetupModal({ config, onSave, onCancel, isOpen }) {
         }));
     };
 
+    const handleOrientationChange = (newOrientation) => {
+        const oldOrientation = localConfig.orientation || 'portrait';
+        if (newOrientation === oldOrientation) return;
+
+        // Physical Rotation Logic (Clockwise 90deg or back)
+        setLocalConfig(prev => {
+            const { cols, rows, gaps, margins } = prev;
+
+            // Swap Cols/Rows and Gaps
+            const newCols = rows;
+            const newRows = cols;
+            const newGaps = { x: gaps.y, y: gaps.x };
+
+            // Rotate Margins (Clockwise 90deg map)
+            // New Top = Old Left
+            // New Right = Old Top
+            // New Bottom = Old Right
+            // New Left = Old Bottom
+            let newMargins;
+            if (newOrientation === 'landscape') {
+                // Portrait -> Landscape (CW)
+                newMargins = {
+                    top: margins.left,
+                    right: margins.top,
+                    bottom: margins.right,
+                    left: margins.bottom
+                };
+            } else {
+                // Landscape -> Portrait (CCW)
+                // New Top = Old Right
+                // New Right = Old Bottom
+                // New Bottom = Old Left
+                // New Left = Old Top
+                newMargins = {
+                    top: margins.right,
+                    right: margins.bottom,
+                    bottom: margins.left,
+                    left: margins.top
+                };
+            }
+
+            return {
+                ...prev,
+                orientation: newOrientation,
+                cols: newCols,
+                rows: newRows,
+                gaps: newGaps,
+                margins: newMargins
+            };
+        });
+    };
+
     const applyPreset = (presetName) => {
         const preset = PAPER_PRESETS[presetName];
         if (preset) {
-            setLocalConfig({ ...localConfig, ...preset });
+            let configToApply = { ...preset };
+
+            // If currently in Landscape, rotate the preset
+            if (localConfig.orientation === 'landscape') {
+                const { cols, rows, gaps, margins } = configToApply;
+                configToApply.cols = rows;
+                configToApply.rows = cols;
+                configToApply.gaps = { x: gaps.y, y: gaps.x };
+                configToApply.margins = {
+                    top: margins.left,
+                    right: margins.top,
+                    bottom: margins.right,
+                    left: margins.bottom
+                };
+            }
+
+            setLocalConfig({ ...localConfig, ...configToApply });
         }
     };
 
     if (!isOpen) return null;
 
     // Calculate dimensions for preview info
-    const effectiveWidth = 210 - localConfig.margins.left - localConfig.margins.right;
-    const effectiveHeight = 297 - localConfig.margins.top - localConfig.margins.bottom;
+    const isLandscape = localConfig.orientation === 'landscape';
+    const pageWidth = isLandscape ? 297 : 210;
+    const pageHeight = isLandscape ? 210 : 297;
+
+    const effectiveWidth = pageWidth - localConfig.margins.left - localConfig.margins.right;
+    const effectiveHeight = pageHeight - localConfig.margins.top - localConfig.margins.bottom;
     const totalGapX = (localConfig.cols - 1) * localConfig.gaps.x;
     const totalGapY = (localConfig.rows - 1) * localConfig.gaps.y;
 
@@ -62,7 +134,7 @@ export default function PaperSetupModal({ config, onSave, onCancel, isOpen }) {
         }
     }
 
-    const totalLabels = localConfig.cols * localConfig.rows * currentSlotCount;
+    const totalLabels = localConfig.cols * localConfig.rows;
 
     return (
         <div className="modal-overlay">
@@ -83,12 +155,15 @@ export default function PaperSetupModal({ config, onSave, onCancel, isOpen }) {
                             <option value="">-- Choose a Preset --</option>
                             {Object.values(PAPER_PRESETS)
                                 .map(p => {
-                                    const psCount = p.slotCount === undefined ? 2 : p.slotCount;
-                                    const pTotalLabels = p.cols * p.rows * psCount;
-                                    const effW = 210 - p.margins.left - p.margins.right;
+                                    const pTotalLabels = p.cols * p.rows;
+                                    const pIsLandscape = (p.orientation || localConfig.orientation) === 'landscape';
+                                    const pPageW = pIsLandscape ? 297 : 210;
+                                    const effW = pPageW - p.margins.left - p.margins.right;
                                     const tx = (p.cols - 1) * p.gaps.x;
                                     const cW = (effW - tx) / p.cols;
-                                    const pStickerW = (psCount === 2 && (p.slotDirection || 'vertical') === 'vertical') ? cW / 2 : cW;
+
+                                    // Use 1-slot width for naming/sorting consistency
+                                    const pStickerW = cW;
 
                                     return { ...p, totalLabels: pTotalLabels, stickerW: pStickerW };
                                 })
@@ -103,6 +178,17 @@ export default function PaperSetupModal({ config, onSave, onCancel, isOpen }) {
                                         {preset.name} - {preset.totalLabels} Labels
                                     </option>
                                 ))}
+                        </select>
+                    </div>
+
+                    <div className="form-group">
+                        <label>Orientation</label>
+                        <select
+                            value={localConfig.orientation || 'portrait'}
+                            onChange={(e) => handleOrientationChange(e.target.value)}
+                        >
+                            <option value="portrait">Portrait (Vertical)</option>
+                            <option value="landscape">Landscape (Horizontal)</option>
                         </select>
                     </div>
 

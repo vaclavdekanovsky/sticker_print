@@ -19,11 +19,15 @@ export default function StickerSheet({ images, onInteract, paperConfig }) {
     const { cols, rows, margins, gaps } = config;
 
     // Calculate Cell Dimensions
-    const effectiveWidth = A4_WIDTH_MM - margins.left - margins.right;
+    const isLandscape = config.orientation === 'landscape';
+    const pageWidth = isLandscape ? A4_HEIGHT_MM : A4_WIDTH_MM;
+    const pageHeight = isLandscape ? A4_WIDTH_MM : A4_HEIGHT_MM;
+
+    const effectiveWidth = pageWidth - margins.left - margins.right;
     const totalGapX = (cols - 1) * (gaps.x || 0);
     const cellWidth = (effectiveWidth - totalGapX) / cols;
 
-    const effectiveHeight = A4_HEIGHT_MM - margins.top - margins.bottom;
+    const effectiveHeight = pageHeight - margins.top - margins.bottom;
     const totalGapY = (rows - 1) * (gaps.y || 0);
     const cellHeight = (effectiveHeight - totalGapY) / rows;
 
@@ -83,7 +87,7 @@ export default function StickerSheet({ images, onInteract, paperConfig }) {
             {pages.map((pageCells, pageIdx) => (
                 <div
                     key={pageIdx}
-                    className="a4-page"
+                    className={`a4-page ${isLandscape ? 'landscape' : ''}`}
                     id={`sticker-sheet-preview-${pageIdx}`}
                     style={{
                         marginBottom: '20px',

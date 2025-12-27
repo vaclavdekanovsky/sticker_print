@@ -6,6 +6,13 @@
     box-sizing: border-box;
     position: relative;
     overflow: hidden;
+    width: 210mm;
+    height: 297mm;
+}
+
+.a4-page.landscape {
+    width: 297mm;
+    height: 210mm;
 }
 
 /* Page Number */
