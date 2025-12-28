@@ -311,6 +311,9 @@ function App() {
 
   // Helper: Calculate Aspect Ratio (Mirroring CropModal logic)
   const getAspectRatio = (config, stickerSize) => {
+    // Default fallback if config matches pdfUtils structure
+    const c = config || { margins: {}, gaps: {}, cols: 3, rows: 6 };
+
     const isLandscape = c.orientation === 'landscape';
     const pageWidth = isLandscape ? 297 : 210;
     const pageHeight = isLandscape ? 210 : 297;

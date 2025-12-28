@@ -5,7 +5,10 @@ A web application for creating, organizing, and printing custom sticker sheets (
 ## Features
 
 -   **Easy Image Upload**: Drag and drop images directly or import a ZIP file.
--   **Flexible Paper Layout**: Choose from standard presets (e.g., 2x4, 3x6) or define custom rows and columns for any A4 sticker sheet.
+-   **Flexible Paper Layout**: 
+    -   Choose from standard presets (e.g., 2x4, 3x6).
+    -   **Custom Grid**: Create any layout (e.g., "5x5 Custom") by simply adjusting rows/columns.
+    -   **Orientation**: Visual buttons to easily switch between Portrait and Landscape modes.
 -   **Multipage Support**: Automatically handles overflow by generating multiple pages in both the preview and PDF export.
 -   **Advanced Editing**:
     -   **Crop & Zoom**: Focus on the best part of your image.

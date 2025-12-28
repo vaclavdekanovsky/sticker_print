@@ -78,6 +78,36 @@ export const PAPER_PRESETS = {
     gaps: { x: 0, y: 0 },
     slotCount: 1,
     slotDirection: 'vertical'
+  },
+  '1x1': {
+    id: '1x1',
+    name: '1x1 Full Page (210x297mm)',
+    cols: 1,
+    rows: 1,
+    margins: { top: 0, bottom: 0, left: 0, right: 0 },
+    gaps: { x: 0, y: 0 },
+    slotCount: 1,
+    slotDirection: 'vertical'
+  },
+  '1x2': {
+    id: '1x2',
+    name: '2x1 Half Page (210x148.5mm)',
+    cols: 1,
+    rows: 2,
+    margins: { top: 0, bottom: 0, left: 0, right: 0 },
+    gaps: { x: 0, y: 0 },
+    slotCount: 1,
+    slotDirection: 'vertical'
+  },
+  '2x2': {
+    id: '2x2',
+    name: '2x2 Quarter Page (105x148.5mm)',
+    cols: 2,
+    rows: 2,
+    margins: { top: 0, bottom: 0, left: 0, right: 0 },
+    gaps: { x: 0, y: 0 },
+    slotCount: 1,
+    slotDirection: 'vertical'
   }
 };
 

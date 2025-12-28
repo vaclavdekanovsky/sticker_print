@@ -13,20 +13,22 @@ export default function PaperSetupModal({ config, onSave, onCancel, isOpen }) {
     }, [config, isOpen]);
 
     const handleChange = (field, value) => {
-        setLocalConfig(prev => ({ ...prev, [field]: value }));
+        setLocalConfig(prev => ({ ...prev, [field]: value, id: null }));
     };
 
     const handleMarginChange = (side, value) => {
         setLocalConfig(prev => ({
             ...prev,
-            margins: { ...prev.margins, [side]: parseFloat(value) || 0 }
+            margins: { ...prev.margins, [side]: parseFloat(value) || 0 },
+            id: null
         }));
     };
 
     const handleGapChange = (axis, value) => {
         setLocalConfig(prev => ({
             ...prev,
-            gaps: { ...prev.gaps, [axis]: parseFloat(value) || 0 }
+            gaps: { ...prev.gaps, [axis]: parseFloat(value) || 0 },
+            id: null
         }));
     };
 
@@ -83,6 +85,10 @@ export default function PaperSetupModal({ config, onSave, onCancel, isOpen }) {
     };
 
     const applyPreset = (presetName) => {
+        if (presetName === 'custom') {
+            setLocalConfig(prev => ({ ...prev, id: null }));
+            return;
+        }
         const preset = PAPER_PRESETS[presetName];
         if (preset) {
             let configToApply = { ...preset };
@@ -149,10 +155,13 @@ export default function PaperSetupModal({ config, onSave, onCancel, isOpen }) {
                         <label>Presets:</label>
                         <select
                             className="preset-select"
-                            value={localConfig.id || ''}
+                            value={localConfig.id || 'custom'}
                             onChange={(e) => applyPreset(e.target.value)}
                         >
-                            <option value="">-- Choose a Preset --</option>
+                            <option value="custom">
+                                {`${localConfig.cols}x${localConfig.rows} Custom (${stickerW.toFixed(1)}x${stickerH.toFixed(1)}mm)`}
+                            </option>
+                            <option disabled value="">-------------------</option>
                             {Object.values(PAPER_PRESETS)
                                 .map(p => {
                                     const pTotalLabels = p.cols * p.rows;
@@ -183,13 +192,22 @@ export default function PaperSetupModal({ config, onSave, onCancel, isOpen }) {
 
                     <div className="form-group">
                         <label>Orientation</label>
-                        <select
-                            value={localConfig.orientation || 'portrait'}
-                            onChange={(e) => handleOrientationChange(e.target.value)}
-                        >
-                            <option value="portrait">Portrait (Vertical)</option>
-                            <option value="landscape">Landscape (Horizontal)</option>
-                        </select>
+                        <div className="orientation-selector">
+                            <button
+                                className={`orientation-btn ${localConfig.orientation === 'portrait' ? 'active' : ''}`}
+                                onClick={() => handleOrientationChange('portrait')}
+                            >
+                                <div className="orientation-icon portrait"></div>
+                                <span>Portrait</span>
+                            </button>
+                            <button
+                                className={`orientation-btn ${localConfig.orientation === 'landscape' ? 'active' : ''}`}
+                                onClick={() => handleOrientationChange('landscape')}
+                            >
+                                <div className="orientation-icon landscape"></div>
+                                <span>Landscape</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div className="form-row">

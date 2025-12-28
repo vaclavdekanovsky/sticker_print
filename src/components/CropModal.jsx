@@ -38,8 +38,12 @@ const CropModal = ({
             slotDirection: 'vertical'
         };
 
-        const effectiveW = 210 - (config.margins.left || 0) - (config.margins.right || 0);
-        const effectiveH = 297 - (config.margins.top || 0) - (config.margins.bottom || 0);
+        const isLandscape = config.orientation === 'landscape';
+        const pageW = isLandscape ? 297 : 210;
+        const pageH = isLandscape ? 210 : 297;
+
+        const effectiveW = pageW - (config.margins.left || 0) - (config.margins.right || 0);
+        const effectiveH = pageH - (config.margins.top || 0) - (config.margins.bottom || 0);
         const totalGapX = ((config.cols || 3) - 1) * (config.gaps?.x || 0);
         const totalGapY = ((config.rows || 6) - 1) * (config.gaps?.y || 0);
 

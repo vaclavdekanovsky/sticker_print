@@ -120,3 +120,53 @@ fieldset legend {
     justify-content: flex-end;
     gap: 1rem;
 }
+
+.orientation-selector {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.orientation-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fdfdfd;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.orientation-btn:hover {
+    border-color: #bbb;
+    background: #f4f4f4;
+}
+
+.orientation-btn.active {
+    border-color: #646cff;
+    background: #f0f7ff;
+    color: #646cff;
+    font-weight: 600;
+}
+
+.orientation-icon {
+    border: 2px solid currentColor;
+    margin-bottom: 0.5rem;
+    border-radius: 2px;
+}
+
+.orientation-icon.portrait {
+    width: 18px;
+    height: 26px;
+}
+
+.orientation-icon.landscape {
+    width: 26px;
+    height: 18px;
+}
