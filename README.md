@@ -37,9 +37,33 @@ A web application for creating, organizing, and printing custom sticker sheets (
 5.  **Global Settings**: Use the **Global Settings** button (Gear icon) to apply background color, size, or zoom to *all* stickers at once.
 6.  **Export**: Click "Export PDF" to download your print-ready file.
 
+## Development
+
+### Prerequisites
+
+-   Node.js (LTS version recommended)
+-   npm
+
+### Setup
+
+1.  Install dependencies:
+    ```bash
+    npm install
+    ```
+
+2.  Start the development server:
+    ```bash
+    npm run dev
+    ```
+
+3.  Build for production:
+    ```bash
+    npm run build
+    ```
+
 ## Tech Stack
 
--   React + Vite
--   dnd-kit (for drag-and-drop)
--   react-easy-crop (for image manipulation)
--   jspdf (for PDF generation)
+-   **Frontend**: React + Vite
+-   **Drag & Drop**: dnd-kit
+-   **Image Manipulation**: react-easy-crop
+-   **PDF Generation**: jspdf

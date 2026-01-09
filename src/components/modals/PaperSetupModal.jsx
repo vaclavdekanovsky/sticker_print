@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { PAPER_PRESETS } from '../config/paperPresets';
+import { PAPER_PRESETS } from '../../config/paperPresets';
 import './PaperSetupModal.css';
 
 export default function PaperSetupModal({ config, onSave, onCancel, isOpen }) {
