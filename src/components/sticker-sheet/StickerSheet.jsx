@@ -82,6 +82,13 @@ export default function StickerSheet({ images, onInteract, paperConfig }) {
 
     const slotDir = config.slotDirection || 'vertical';
 
+    // Border settings
+    const border = config.border || {};
+    const borderStyle = border.enabled
+        ? `${border.width || 0}px solid ${border.color || '#000'}`
+        : 'none';
+    const borderRadius = border.enabled ? `${border.radius || 0}px` : '0';
+
     return (
         <div className="sheet-container">
             {pages.map((pageCells, pageIdx) => (
@@ -115,11 +122,15 @@ export default function StickerSheet({ images, onInteract, paperConfig }) {
                         {pageCells.map((cell, idx) => (
                             <div
                                 key={idx}
-                                className={`sticker-cell ${slotDir}`} // Add class for CSS targeting
+                                className={`sticker-cell ${slotDir}`}
                                 style={{
                                     position: 'relative',
                                     width: `${cellWidth}mm`,
-                                    height: `${cellHeight}mm`
+                                    height: `${cellHeight}mm`,
+                                    border: borderStyle,
+                                    borderRadius: borderRadius,
+                                    boxSizing: 'border-box',
+                                    overflow: 'hidden'
                                 }}
                             >
                                 {cell.type === 'full' ? (
