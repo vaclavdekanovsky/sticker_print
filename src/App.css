@@ -130,6 +130,62 @@ header {
 }
 
 /* NEW STYLES */
+.config-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.config-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 1px solid #dee2e6;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.config-pill:hover {
+  border-color: #646cff;
+  box-shadow: 0 2px 8px rgba(100, 108, 255, 0.15);
+}
+
+.config-summary {
+  font-weight: 500;
+}
+
+.config-divider {
+  color: #adb5bd;
+  margin: 0 2px;
+}
+
+.btn-settings {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #fff3e0;
+  border: 1px solid #ffcc80;
+  border-radius: 20px;
+  color: #e65100;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-settings:hover {
+  background: #ffe0b2;
+  border-color: #ffa726;
+  box-shadow: 0 2px 8px rgba(255, 167, 38, 0.2);
+}
+
+/* NEW STYLES */
 .header-content {
   display: flex;
   justify-content: space-between;

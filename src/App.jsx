@@ -431,15 +431,21 @@ function App() {
     <div className="container">
       <header>
         <div className="header-content">
-          <div>
-            <h1>Sticker Sheet Creator</h1>
-            <button className="btn-icon" onClick={() => setIsPaperSetupOpen(true)} title="Configure Paper & Grid">
-              <Settings size={16} style={{ marginRight: '6px' }} />
-              {paperConfig.name}
+          <h1>Sticker Sheet Creator</h1>
+          <div className="config-section">
+            <button className="config-pill" onClick={() => setIsPaperSetupOpen(true)} title="Configure Paper & Grid">
+              <Settings size={16} />
+              <span className="config-summary">
+                {paperConfig.cols || 3}×{paperConfig.rows || 6} Grid
+              </span>
+              <span className="config-divider">|</span>
+              <span className="config-summary">
+                {paperConfig.orientation === 'landscape' ? 'Landscape' : 'Portrait'}
+              </span>
             </button>
-            <button className="btn-icon" onClick={() => setIsGlobalSettingsOpen(true)} title="Global Settings">
-              <SlidersHorizontal size={16} style={{ marginRight: '6px' }} />
-              Global Settings
+            <button className="btn-settings" onClick={() => setIsGlobalSettingsOpen(true)} title="Global Settings">
+              <SlidersHorizontal size={16} />
+              Global
             </button>
           </div>
           <div className="actions">
