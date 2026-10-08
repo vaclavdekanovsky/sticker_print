@@ -1,4 +1,25 @@
-# Christmas Sticker Creator
+# Sticker Sheet Creator — Outline edition
+
+GitHub fork: [supriyopaul/sticker_print](https://github.com/supriyopaul/sticker_print), based on [vaclavdekanovsky/sticker_print](https://github.com/vaclavdekanovsky/sticker_print). The outline changes are on branch `feature/object-outlines`; `master` remains the original upstream version.
+
+## Colored object outlines
+
+Upload an image and click its edit button or its sheet preview. **Object outline** is beside **Background**, **Zoom**, and **Rotate**:
+
+- Enable the outline and choose its color and thickness (0.25–5% of the image's shorter side). Thickness scales with zoom.
+- The last-used outline color, thickness, detection mode, tolerance, and background option are remembered in this browser, including after a refresh. Enabling an outline reuses those settings; new stickers still start with the outline off. Already outlined stickers keep their own saved settings when reopened. Changing an outline control updates these defaults immediately; Cancel leaves the sticker unchanged but keeps the last-used defaults.
+- **Auto** uses existing transparency, or detects a dominant solid color around the image's edges. **Transparency only** and **Solid background** let you choose explicitly.
+- **Tolerance** controls how close pixels must be to the detected background color. Only connected background pixels reaching an image edge are removed; enclosed same-color object details are retained.
+- Choose whether to replace the detected background with the selected sticker background or keep the original background behind the outline.
+- Changes preview live. **Save Changes** applies the same image processing to the sheet and PDF. ZIP version 2 includes both original and processed images plus outline/crop settings, so imported stickers remain editable without double outlines.
+
+Processing runs locally in your browser: no image uploads, AI models, or external services. It is intended for transparent artwork and simple, nearly uniform backgrounds, **not subject segmentation in complex photographs**. If no clear boundary is found, the editor warns and keeps the original image. Objects touching the image or crop boundary may have clipped outlines. Large-image mask detection is limited to 2048 pixels on the longest side; original artwork resolution is retained. Outline rendering accepts up to 16 megapixels and 8192 pixels per side, and asks you to resize larger sources.
+
+Run the fork with `npm run dev -- --host 127.0.0.1 --port 5174`. Pure mask tests: `npm test`. Browser regressions: `npm run test:e2e` (install Playwright Chromium first with `npx playwright install chromium`). Set the `STICKER_PORT` environment variable to test another port. Production build: `npm run build`.
+
+---
+
+## Original application
 
 A web application for creating, organizing, and printing custom sticker sheets (A4 size). Designed for easy personalization of Christmas stickers, but versatile enough for any sticker needs.
 

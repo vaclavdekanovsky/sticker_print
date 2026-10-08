@@ -1,3 +1,5 @@
+import { prepareOutlinedImage } from './outlineUtils';
+
 export const createImage = (url) =>
     new Promise((resolve, reject) => {
         const image = new Image()
@@ -33,9 +35,11 @@ export default async function getCroppedImg(
     pixelCrop,
     rotation = 0,
     flip = { horizontal: false, vertical: false },
-    backgroundColor = '#ffffff'
+    outline = undefined,
+    preparedSrc = undefined
 ) {
-    const image = await createImage(imageSrc)
+    const source = preparedSrc || (await prepareOutlinedImage(imageSrc, outline)).src;
+    const image = await createImage(source)
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
 
@@ -72,9 +76,7 @@ export default async function getCroppedImg(
     const finalCtx = finalCanvas.getContext('2d');
 
     if (finalCtx) {
-        // 1. Fill background - SKIPPED to allow dynamic background changes
-        // finalCtx.fillStyle = backgroundColor;
-        // finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+        // Keep transparency: sheet/PDF rendering composites the background.
 
         // 2. Safe Draw (Intersection Logic for "Fit" / Zoom < 1)
         // pixelCrop contains x, y, width, height relative to the rotated canvas

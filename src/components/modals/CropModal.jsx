@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Cropper from 'react-easy-crop';
-import { FlipHorizontal, FlipVertical, RotateCw, RotateCcw } from 'lucide-react';
+import { FlipHorizontal, FlipVertical, RotateCw, RotateCcw, ScanLine } from 'lucide-react';
+import { prepareOutlinedImage } from '../../utils/outlineUtils';
 
 const CropModal = ({
     editingImage,
@@ -10,6 +11,10 @@ const CropModal = ({
     rotation,
     flip,
     backgroundColor,
+    outline,
+    onOutlineChange,
+    isSaving,
+    saveError,
     stickerSize,
     quantity,
     setCrop,
@@ -23,9 +28,29 @@ const CropModal = ({
     onCancel,
     onSave
 }) => {
-    if (!editingImage) return null;
+    const [mediaSize, setMediaSize] = useState({ width: 0, height: 0, naturalWidth: 0, naturalHeight: 0 });
+    const [preview, setPreview] = useState(null);
+    const source = editingImage?.src;
+    const previewKey = JSON.stringify([source, outline]);
 
-    const [mediaSize, setMediaSize] = React.useState({ width: 0, height: 0, naturalWidth: 0, naturalHeight: 0 });
+    useEffect(() => {
+        if (!source || !outline.enabled) return;
+        let cancelled = false;
+        // Debounce sliders; discard stale work when settings change or close.
+        const timer = setTimeout(() => {
+            prepareOutlinedImage(source, outline).then(result => {
+                if (!cancelled) setPreview({ ...result, key: previewKey });
+            }).catch(error => {
+                if (!cancelled) setPreview({ src: source, key: previewKey, error: error.message });
+            });
+        }, 120);
+        return () => { cancelled = true; clearTimeout(timer); };
+    }, [source, outline, previewKey]);
+
+    const processing = outline.enabled && preview?.key !== previewKey;
+    const currentPreview = outline.enabled && preview?.key === previewKey ? preview : null;
+    const previewSource = currentPreview?.src || source;
+    const updateOutline = onOutlineChange;
 
     // Calculate Aspect Ratio based on Paper Config and Sticker Mode
     const aspect = useMemo(() => {
@@ -98,19 +123,25 @@ const CropModal = ({
     const slotDir = paperConfig?.slotDirection || 'vertical';
     const showCutLine = stickerSize === 'full' && (paperConfig?.slotCount || 2) === 2;
 
+    if (!editingImage) return null;
+
     return (
-        <div className="modal">
+        <div className="modal" role="dialog" aria-modal="true" aria-label="Edit sticker">
             <div className="cropper-wrapper">
+                <div className="editor-heading">
+                    <div><strong>Edit sticker</strong><span>{editingImage.name}</span></div>
+                    <span className="editor-private">Processed locally · no uploads</span>
+                </div>
                 <div className="cropper-area" style={{
                     backgroundColor: backgroundColor,
-                    transform: `scaleX(${flip.horizontal ? -1 : 1}) scaleY(${flip.vertical ? -1 : 1})`,
                     position: 'relative' // For cut line absolute positioning
                 }}>
                     <Cropper
-                        image={editingImage.src}
+                        image={previewSource}
                         crop={crop}
                         zoom={zoom}
                         rotation={rotation}
+                        transform={`translate(${crop.x}px, ${crop.y}px) rotate(${rotation}deg) scale(${zoom}) scaleX(${flip.horizontal ? -1 : 1}) scaleY(${flip.vertical ? -1 : 1})`}
                         aspect={aspect}
                         onCropChange={setCrop}
                         onCropComplete={onCropComplete}
@@ -217,18 +248,76 @@ const CropModal = ({
                             </div>
                         </div>
                     </div>
-                </div>
 
                 {/* Row 3: Background */}
                 <div className="control-row" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <label>Background</label>
+                    <label htmlFor="sticker-background">Background</label>
                     <input
+                        id="sticker-background"
                         type="color"
                         value={backgroundColor}
                         onChange={(e) => setBackgroundColor(e.target.value)}
                     />
                     <button onClick={() => setBackgroundColor('#ffffff')} className="btn-small">Reset White</button>
                 </div>
+
+                <fieldset className={`outline-panel ${outline.enabled ? 'is-enabled' : ''}`}>
+                    <legend><ScanLine size={16} /> Object outline</legend>
+                    <label className="outline-toggle" htmlFor="outline-enabled">
+                        <input id="outline-enabled" type="checkbox" checked={outline.enabled}
+                            onChange={event => updateOutline({ enabled: event.target.checked })} />
+                        Add a colored outline around the object
+                    </label>
+                    {outline.enabled && (
+                        <>
+                            <div className="outline-options">
+                                <label htmlFor="outline-color">Color
+                                    <input id="outline-color" type="color" value={outline.color}
+                                        onChange={event => updateOutline({ color: event.target.value })} />
+                                </label>
+                                <label className="outline-width" htmlFor="outline-width">Thickness
+                                    <input id="outline-width" type="range" min="0.25" max="5" step="0.25"
+                                        value={outline.width}
+                                        onChange={event => updateOutline({ width: Number(event.target.value) })} />
+                                    <output htmlFor="outline-width">{outline.width}%</output>
+                                </label>
+                                <label htmlFor="outline-mode">Background detection
+                                    <select id="outline-mode" value={outline.mode}
+                                        onChange={event => updateOutline({ mode: event.target.value })}>
+                                        <option value="auto">Auto (transparent / solid)</option>
+                                        <option value="alpha">Transparency only</option>
+                                        <option value="solid">Solid background</option>
+                                    </select>
+                                </label>
+                                {outline.mode !== 'alpha' && (
+                                    <label className="outline-width" htmlFor="outline-tolerance">Tolerance
+                                        <input id="outline-tolerance" type="range" min="4" max="100" step="1"
+                                            value={outline.tolerance}
+                                            onChange={event => updateOutline({ tolerance: Number(event.target.value) })} />
+                                        <output htmlFor="outline-tolerance">{outline.tolerance}</output>
+                                    </label>
+                                )}
+                            </div>
+                            <label className="outline-toggle" htmlFor="outline-remove-background">
+                                <input id="outline-remove-background" type="checkbox" checked={outline.removeBackground}
+                                    onChange={event => updateOutline({ removeBackground: event.target.checked })} />
+                                Replace detected background with the selected sticker background
+                            </label>
+                            <p className={`outline-status ${currentPreview?.kind === 'none' || currentPreview?.error ? 'is-warning' : ''}`}
+                                role="status" aria-live="polite">
+                                {processing ? 'Detecting object edges…' : currentPreview?.error
+                                    ? `${currentPreview.error} Turn off the outline or try another image.`
+                                    : currentPreview?.kind === 'none'
+                                        ? 'No clear object boundary found. Try a transparent PNG or a simpler background; adjust tolerance for solid colors.'
+                                        : currentPreview?.kind === 'solid'
+                                            ? 'Solid background detected. Only edge-connected background pixels are removed.'
+                                            : 'Transparency detected. The outline follows the object’s silhouette.'}
+                            </p>
+                            <p className="outline-hint">Best for transparent artwork or a plain background, not complex photos. Thickness is relative to image size and scales with zoom. Edges at the image boundary may be clipped.</p>
+                        </>
+                    )}
+                    <p className="outline-hint">Your last-used color, thickness, detection, tolerance, and background option are remembered in this browser and reused when you enable an outline.</p>
+                </fieldset>
 
                 {/* Row 4: Zoom */}
                 <div className="control-row">
@@ -290,9 +379,16 @@ const CropModal = ({
                     </div>
                 </div>
 
-                <div className="cropper-buttons">
-                    <button onClick={onCancel}>Cancel</button>
-                    <button className="btn-primary" onClick={onSave}>Save Changes</button>
+                </div>
+                <div className="editor-footer">
+                    {saveError && <p className="editor-error" role="alert">{saveError}</p>}
+                    <div className="cropper-buttons">
+                        <button onClick={onCancel} disabled={isSaving}>Cancel</button>
+                        <button className="btn-primary" onClick={() => onSave(previewSource)}
+                            disabled={processing || isSaving || currentPreview?.error}>
+                            {isSaving ? 'Saving…' : processing ? 'Processing…' : 'Save Changes'}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
